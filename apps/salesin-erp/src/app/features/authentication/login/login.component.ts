@@ -63,7 +63,7 @@ export class LoginComponent {
         : this.auth.loginWithPassword(this.passwordForm.getRawValue());
 
     request.pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: () => void this.router.navigate(['/catalog']),
+      next: () => void this.router.navigate(['/']),
       error: () =>
         this.errorMessage.set(
           'Authentication was not accepted. Check your details and ERPNext permissions.',

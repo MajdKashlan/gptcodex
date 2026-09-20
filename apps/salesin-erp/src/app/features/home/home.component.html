@@ -1,0 +1,92 @@
+<main class="workspace">
+  <aside class="sidebar">
+    <a class="brand" routerLink="/" aria-label="SalesIn ERP home">
+      <span class="brand-mark">S</span>
+      <span>SalesIn<span>ERP</span></span>
+    </a>
+
+    <nav aria-label="Main navigation">
+      <a class="nav-item active" routerLink="/">Overview</a>
+      <a class="nav-item" href="#quick-actions">Sales</a>
+      <a class="nav-item" href="#quick-actions">Customers</a>
+      <a class="nav-item" href="#quick-actions">Inventory</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>Connected to ERPNext</p>
+      <button matButton="outlined" type="button" (click)="signOut()">Sign out</button>
+    </div>
+  </aside>
+
+  <section class="content">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">{{ today }}</p>
+        <h1>Good morning, {{ userName() }}.</h1>
+      </div>
+      <button matButton="filled" type="button">+ Create sales order</button>
+    </header>
+
+    <section class="metric-grid" aria-label="Sales overview">
+      <mat-card>
+        <mat-card-content>
+          <p class="metric-label">Open sales orders</p>
+          <strong class="metric-value">—</strong>
+          <p class="metric-note">Connect orders to see today’s workload</p>
+        </mat-card-content>
+      </mat-card>
+      <mat-card>
+        <mat-card-content>
+          <p class="metric-label">Customers</p>
+          <strong class="metric-value">—</strong>
+          <p class="metric-note">Your ERPNext customer directory</p>
+        </mat-card-content>
+      </mat-card>
+      <mat-card>
+        <mat-card-content>
+          <p class="metric-label">Items in catalog</p>
+          <strong class="metric-value">—</strong>
+          <p class="metric-note">Browse products and current prices</p>
+        </mat-card-content>
+      </mat-card>
+    </section>
+
+    <section id="quick-actions" class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Start working</p>
+          <h2>Quick actions</h2>
+        </div>
+      </div>
+      <div class="action-grid">
+        @for (action of quickActions; track action.title) {
+          <button class="action-card" type="button">
+            <span class="action-symbol">{{ action.symbol }}</span>
+            <span>
+              <strong>{{ action.title }}</strong>
+              <small>{{ action.description }}</small>
+            </span>
+            <span class="arrow">→</span>
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="panel recent-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Activity</p>
+          <h2>Recent sales orders</h2>
+        </div>
+        <button matButton type="button">View all</button>
+      </div>
+      <div class="empty-state">
+        <span>⌁</span>
+        <div>
+          <h3>Your recent orders will appear here</h3>
+          <p>Create an order or connect the sales-order list to start tracking activity.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
