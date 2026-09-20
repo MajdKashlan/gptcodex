@@ -1,92 +1,28 @@
-<main class="workspace">
+<main class="shell">
   <aside class="sidebar">
-    <a class="brand" routerLink="/" aria-label="SalesIn ERP home">
-      <span class="brand-mark">S</span>
-      <span>SalesIn<span>ERP</span></span>
-    </a>
-
-    <nav aria-label="Main navigation">
-      <a class="nav-item active" routerLink="/">Overview</a>
-      <a class="nav-item" href="#quick-actions">Sales</a>
-      <a class="nav-item" href="#quick-actions">Customers</a>
-      <a class="nav-item" href="#quick-actions">Inventory</a>
+    <a class="brand" routerLink="/"><b>S</b> Sales<em>In</em></a>
+    <nav>
+      <a class="active" routerLink="/">▣ <span>Dashboard</span></a><a href="#">▦ <span>Appointments</span></a><a href="#">♟ <span>Customers</span></a><a href="#">▤ <span>Items</span></a><a href="#">🛒 <span>Sales</span></a><a href="#">▧ <span>Reports</span></a><a href="#">▣ <span>B2B eCommerce</span></a><a href="#">⚙ <span>Administration</span></a><a href="#">! <span>Feedback</span></a><a href="#">? <span>Help</span></a>
     </nav>
-
-    <div class="sidebar-footer">
-      <p>Connected to ERPNext</p>
-      <button matButton="outlined" type="button" (click)="signOut()">Sign out</button>
+    <div class="sidebar-user">
+      <span class="user-avatar">{{ userName().slice(0, 1).toUpperCase() }}</span>
+      <span class="user-name">{{ userName() }}</span>
+      <button type="button" (click)="signOut()">Logout</button>
     </div>
   </aside>
-
-  <section class="content">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">{{ today }}</p>
-        <h1>Good morning, {{ userName() }}.</h1>
-      </div>
-      <button matButton="filled" type="button">+ Create sales order</button>
-    </header>
-
-    <section class="metric-grid" aria-label="Sales overview">
-      <mat-card>
-        <mat-card-content>
-          <p class="metric-label">Open sales orders</p>
-          <strong class="metric-value">—</strong>
-          <p class="metric-note">Connect orders to see today’s workload</p>
-        </mat-card-content>
-      </mat-card>
-      <mat-card>
-        <mat-card-content>
-          <p class="metric-label">Customers</p>
-          <strong class="metric-value">—</strong>
-          <p class="metric-note">Your ERPNext customer directory</p>
-        </mat-card-content>
-      </mat-card>
-      <mat-card>
-        <mat-card-content>
-          <p class="metric-label">Items in catalog</p>
-          <strong class="metric-value">—</strong>
-          <p class="metric-note">Browse products and current prices</p>
-        </mat-card-content>
-      </mat-card>
-    </section>
-
-    <section id="quick-actions" class="panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Start working</p>
-          <h2>Quick actions</h2>
-        </div>
-      </div>
-      <div class="action-grid">
-        @for (action of quickActions; track action.title) {
-          <button class="action-card" type="button">
-            <span class="action-symbol">{{ action.symbol }}</span>
-            <span>
-              <strong>{{ action.title }}</strong>
-              <small>{{ action.description }}</small>
-            </span>
-            <span class="arrow">→</span>
-          </button>
-        }
-      </div>
-    </section>
-
-    <section class="panel recent-panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Activity</p>
-          <h2>Recent sales orders</h2>
-        </div>
-        <button matButton type="button">View all</button>
-      </div>
-      <div class="empty-state">
-        <span>⌁</span>
-        <div>
-          <h3>Your recent orders will appear here</h3>
-          <p>Create an order or connect the sales-order list to start tracking activity.</p>
-        </div>
-      </div>
+  <section class="page">
+    <header class="topbar"><h1>Dashboard</h1><div><i>●</i> {{ userName() }}　⌄</div></header>
+    <button class="fab" aria-label="Create new">+</button>
+    <section class="grid">
+      <article class="widget graph"><header><b>Personal - Volume by Day</b><small>➤ Compare Previous Period</small></header><p class="legend">━ Comparison　<span>━</span> Actual</p><div class="plot blue"><i></i><i></i><i></i></div></article>
+      <article class="widget graph"><header><b>Personal - Value by Day</b><small>➤ Compare Previous Period</small></header><p class="legend purple">━ Comparison　<span>━</span> Actual</p><div class="plot violet"><i></i><i></i></div></article>
+      <article class="widget graph"><header><b>Personal - Value by Month</b><small>➤ Compare Previous Period</small></header><p class="legend orange">━ Comparison　<span>━</span> Actual　━ Ex. Tax</p><div class="columns"><i></i><i></i><i></i><i></i><i></i><i class="tall"></i><i></i></div></article>
+      <article class="widget pie-card"><header><b>Total - Top 10 Item Volume</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie multi"></div></article>
+      <article class="widget pie-card"><header><b>Total - Volume by User</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie"></div></article>
+      <article class="widget"><header><b>Performance Snapshot</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><table><tr><th></th><th>Today</th><th>Yesterday</th><th>Last Sunday</th></tr><tr><td>Sales generated</td><td>0 (0)</td><td>0 (0)</td><td>1 (1)</td></tr><tr><td>Total sales</td><td>$0.00</td><td>$0.00</td><td>$3,252.00</td></tr><tr><td>My sales</td><td>$0.00</td><td>$0.00</td><td>$3,252.00</td></tr><tr><td>Other users</td><td>$0.00</td><td>$0.00</td><td>$0.00</td></tr></table></article>
+      <article class="widget list"><header><b>Top Customers</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><p>Dukkan International Market <strong>$3,252.00　›</strong></p><p>DUKKAN INTERNATIONAL MARKET 2 <strong>$631.60　›</strong></p><p>LEVANT HOSPITALITY LLC DBA D &amp; DIPS <strong>$712.00　›</strong></p><p>Balqees coffee <strong>$0.00　›</strong></p><p>JOHNSON BROS. BAKERY SUPPLY INC. <strong>$0.00　›</strong></p></article>
+      <article class="widget list"><header><b>No. of Sales</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><p>Closed <strong>37　›</strong></p><p>Open <strong>44　›</strong></p></article>
+      <article class="widget list"><header><b>Popular Items</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><p>PARFAI DRIED KATAIF PACKED IN 1.1 LB <strong>10　›</strong></p><p>PARFAI ROASTED KATAIF PACKED IN 1.1 LB <strong>10　›</strong></p><p>FO PEACH FRUITED SAUCE <strong>4　›</strong></p><p>FO BERRY HIBISCUS COCKTAIL BASE 6x700 ML <strong>4　›</strong></p><p>FO STRAWBERRY &amp; ACAI COCKTAIL BASE <strong>3　›</strong></p></article>
     </section>
   </section>
 </main>
