@@ -8,7 +8,8 @@
     background: #eee;
     color: #444;
     display: flex;
-    min-height: 100dvh
+    min-height: 100dvh;
+    width: 100%
 }
 
 .sidebar {
@@ -87,7 +88,12 @@ nav .active {
     font-weight: bold;
     height: 32px;
     justify-content: center;
+    object-fit: cover;
     width: 32px
+}
+
+.user-avatar-fallback {
+    color: #fff
 }
 
 .user-name {
@@ -113,9 +119,10 @@ nav .active {
 }
 
 .page {
+    flex: 1 1 auto;
     min-width: 0;
     position: relative;
-    width: calc(100% - 168px)
+    width: auto
 }
 
 .topbar {
@@ -136,6 +143,169 @@ nav .active {
 
 .topbar div {
     font-size: 13px
+}
+
+.user-menu {
+    position: relative
+}
+
+.user-menu-trigger {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    gap: 5px;
+    padding: 8px 0
+}
+
+.user-menu-trigger:hover,
+.user-menu-trigger:focus-visible {
+    text-decoration: underline
+}
+
+.user-menu-trigger b {
+    font-size: 11px;
+    font-weight: normal
+}
+
+.user-menu-panel {
+    background: #fff;
+    border: 1px solid #d7dce2;
+    box-shadow: 0 4px 12px #0003;
+    min-width: 156px;
+    padding: 5px;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 4
+}
+
+.user-menu-panel button {
+    background: transparent;
+    border: 0;
+    color: #3b4558;
+    cursor: pointer;
+    display: block;
+    font-size: 12px;
+    padding: 9px 10px;
+    text-align: left;
+    width: 100%
+}
+
+.user-menu-panel button:hover,
+.user-menu-panel button:focus-visible {
+    background: #eef8fb
+}
+
+.dialog-backdrop {
+    align-items: center;
+    background: #16202b99;
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 20px;
+    position: fixed;
+    z-index: 5
+}
+
+.password-dialog {
+    background: #fff;
+    box-shadow: 0 10px 30px #0004;
+    max-width: 420px;
+    padding: 22px;
+    width: 100%
+}
+
+.password-dialog header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px
+}
+
+.password-dialog h2 {
+    color: #3b4558;
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0
+}
+
+.dialog-close {
+    background: transparent;
+    border: 0;
+    color: #667085;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+    padding: 2px 6px
+}
+
+.password-dialog mat-form-field {
+    display: block;
+    margin-bottom: 8px;
+    width: 100%
+}
+
+.password-error,
+.password-success {
+    font-size: 12px;
+    margin: 4px 0 12px
+}
+
+.password-error {
+    color: #c62828
+}
+
+.password-success {
+    color: #18794e
+}
+
+.reset-password-link {
+    background: transparent;
+    border: 0;
+    color: #008fc6;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 0;
+    text-decoration: underline
+}
+
+.reset-password-link:disabled {
+    cursor: wait;
+    opacity: .65
+}
+
+.dialog-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px
+}
+
+.dialog-action,
+.dialog-cancel {
+    border: 0;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 9px 13px
+}
+
+.dialog-action {
+    background: #0098c9;
+    color: #fff
+}
+
+.dialog-action:disabled {
+    cursor: wait;
+    opacity: .65
+}
+
+.dialog-cancel {
+    background: #edf0f2;
+    color: #3b4558
 }
 
 .topbar i {
@@ -309,7 +479,12 @@ nav .active {
 table {
     border-collapse: collapse;
     font-size: 12px;
+    min-width: 430px;
     width: 100%
+}
+
+.widget:has(table) {
+    overflow-x: auto
 }
 
 th,
@@ -345,15 +520,15 @@ td:first-child {
     text-align: right
 }
 
-@media(max-width:1000px) {
+@media(max-width:1100px) {
     .grid {
         grid-template-columns: repeat(2, minmax(0, 1fr))
     }
 }
 
-@media(max-width:650px) {
+@media(max-width:700px) {
     .sidebar {
-        flex-basis: 54px
+        flex: 0 0 58px
     }
 
     .brand {
@@ -380,7 +555,7 @@ td:first-child {
     }
 
     .page {
-        width: calc(100% - 54px)
+        width: auto
     }
 
     .topbar {
@@ -395,4 +570,39 @@ td:first-child {
     .topbar div {
         font-size: 0
     }
+
+    .user-menu-trigger span,
+    .user-menu-trigger b {
+        display: none
+    }
+
+    .user-menu-trigger i {
+        font-size: 16px
+    }
+
+    .topbar h1 {
+        font-size: 20px
+    }
+
+    .fab {
+        right: 10px;
+    }
+}
+
+.topbar-avatar {
+    align-items: center;
+    border-radius: 50%;
+    display: flex;
+    height: 25px;
+    justify-content: center;
+    object-fit: cover;
+    width: 25px
+}
+
+.topbar-avatar-fallback {
+    background: #fff;
+    color: #00a1d3;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: bold
 }

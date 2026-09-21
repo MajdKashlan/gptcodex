@@ -8,11 +8,22 @@ export interface PasswordCredentials {
   password: string;
 }
 
+export interface ChangePasswordCredentials {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export interface UserProfile {
+  username: string;
+  fullName: string;
+  imageUrl: string | null;
+}
+
 export type AuthenticationMode = 'anonymous' | 'api-token' | 'session';
 
 export interface AuthState {
   mode: AuthenticationMode;
-  user: string | null;
+  user: UserProfile | null;
 }
 
 export interface ErpNextMessageResponse<T> {
