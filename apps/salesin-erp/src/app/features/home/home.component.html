@@ -96,16 +96,24 @@
         </section>
       </div>
     }
+    @if (dashboardLoading()) {
+      <p class="dashboard-status" role="status">Loading dashboard data…</p>
+    } @else if (dashboardError(); as error) {
+      <p class="dashboard-status dashboard-error" role="alert">{{ error }}</p>
+    } @else if (dashboard().unavailableResources.length) {
+      <p class="dashboard-status dashboard-error" role="alert">
+        ERPNext permissions are required for: {{ dashboard().unavailableResources.join(', ') }}.
+      </p>
+    }
     <section class="grid">
-      <article class="widget graph"><header><b>Personal - Volume by Day</b><small>➤ Compare Previous Period</small></header><p class="legend">━ Comparison　<span>━</span> Actual</p><div class="plot blue"><i></i><i></i><i></i></div></article>
-      <article class="widget graph"><header><b>Personal - Value by Day</b><small>➤ Compare Previous Period</small></header><p class="legend purple">━ Comparison　<span>━</span> Actual</p><div class="plot violet"><i></i><i></i></div></article>
-      <article class="widget graph"><header><b>Personal - Value by Month</b><small>➤ Compare Previous Period</small></header><p class="legend orange">━ Comparison　<span>━</span> Actual　━ Ex. Tax</p><div class="columns"><i></i><i></i><i></i><i></i><i></i><i class="tall"></i><i></i></div></article>
+      <article class="widget metric"><header><b>Total sales</b><small>Live from Sales Orders</small></header><strong>{{ formatCurrency(dashboard().totalSales) }}</strong><span>{{ dashboard().salesOrderCount }} orders loaded</span></article>
+      <article class="widget metric"><header><b>Orders</b><small>Current ERPNext data</small></header><strong>{{ dashboard().salesOrderCount }}</strong><span>{{ dashboard().openOrderCount }} open · {{ dashboard().closedOrderCount }} closed</span></article>
+      <article class="widget metric"><header><b>Accounts &amp; items</b><small>Current ERPNext data</small></header><strong>{{ dashboard().customerCount }} / {{ dashboard().itemCount }}</strong><span>customers / items</span></article>
       <article class="widget pie-card"><header><b>Total - Top 10 Item Volume</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie multi"></div></article>
       <article class="widget pie-card"><header><b>Total - Volume by User</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie"></div></article>
-      <article class="widget"><header><b>Performance Snapshot</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><table><tr><th></th><th>Today</th><th>Yesterday</th><th>Last Sunday</th></tr><tr><td>Sales generated</td><td>0 (0)</td><td>0 (0)</td><td>1 (1)</td></tr><tr><td>Total sales</td><td>$0.00</td><td>$0.00</td><td>$3,252.00</td></tr><tr><td>My sales</td><td>$0.00</td><td>$0.00</td><td>$3,252.00</td></tr><tr><td>Other users</td><td>$0.00</td><td>$0.00</td><td>$0.00</td></tr></table></article>
-      <article class="widget list"><header><b>Top Customers</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><p>Dukkan International Market <strong>$3,252.00　›</strong></p><p>DUKKAN INTERNATIONAL MARKET 2 <strong>$631.60　›</strong></p><p>LEVANT HOSPITALITY LLC DBA D &amp; DIPS <strong>$712.00　›</strong></p><p>Balqees coffee <strong>$0.00　›</strong></p><p>JOHNSON BROS. BAKERY SUPPLY INC. <strong>$0.00　›</strong></p></article>
-      <article class="widget list"><header><b>No. of Sales</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><p>Closed <strong>37　›</strong></p><p>Open <strong>44　›</strong></p></article>
-      <article class="widget list"><header><b>Popular Items</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><p>PARFAI DRIED KATAIF PACKED IN 1.1 LB <strong>10　›</strong></p><p>PARFAI ROASTED KATAIF PACKED IN 1.1 LB <strong>10　›</strong></p><p>FO PEACH FRUITED SAUCE <strong>4　›</strong></p><p>FO BERRY HIBISCUS COCKTAIL BASE 6x700 ML <strong>4　›</strong></p><p>FO STRAWBERRY &amp; ACAI COCKTAIL BASE <strong>3　›</strong></p></article>
+      <article class="widget"><header><b>Performance Snapshot</b><small>Live from Sales Orders</small></header><table><tr><th></th><th>Value</th></tr><tr><td>Sales orders</td><td>{{ dashboard().salesOrderCount }}</td></tr><tr><td>Total sales</td><td>{{ formatCurrency(dashboard().totalSales) }}</td></tr><tr><td>Open orders</td><td>{{ dashboard().openOrderCount }}</td></tr><tr><td>Closed orders</td><td>{{ dashboard().closedOrderCount }}</td></tr></table></article>
+      <article class="widget list"><header><b>Top Customers</b><small>Ranked by loaded order value</small></header>@for (customer of dashboard().topCustomers; track customer.name) {<p>{{ customer.name }} <strong>{{ formatCurrency(customer.total) }}　›</strong></p>} @empty {<p>No sales data available.</p>}</article>
+      <article class="widget list"><header><b>Popular Items</b><small>Ranked by ordered quantity</small></header>@for (item of dashboard().popularItems; track item.name) {<p>{{ item.name }} <strong>{{ item.quantity }}　›</strong></p>} @empty {<p>No item data available.</p>}</article>
     </section>
   </section>
 </main>

@@ -606,3 +606,32 @@ td:first-child {
     font-style: normal;
     font-weight: bold
 }
+
+.metric {
+    min-height: 150px;
+}
+
+.metric > strong {
+    color: #0098c9;
+    display: block;
+    font-size: 28px;
+    font-weight: 400;
+    margin: 24px 12px 4px;
+}
+
+.metric > span {
+    color: #777;
+    display: block;
+    font-size: 11px;
+    margin: 0 12px;
+}
+
+.dashboard-status {
+    color: #667085;
+    font-size: 12px;
+    margin: 12px 18px 0;
+}
+
+.dashboard-error {
+    color: #b42318;
+}

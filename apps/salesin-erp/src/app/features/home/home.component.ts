@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { finalize } from 'rxjs';
 import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
+import { DashboardData, HomeDashboardService } from './home-dashboard.service';
 
 interface QuickAction {
   title: string;
@@ -28,10 +29,11 @@ interface QuickAction {
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   private readonly auth = inject(ErpNextAuthService);
   private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly dashboardService = inject(HomeDashboardService);
 
   protected readonly userName = computed(() => this.auth.currentUser()?.fullName || 'User');
   protected readonly userImage = computed(() => this.auth.currentUser()?.imageUrl);
@@ -42,6 +44,19 @@ export class HomeComponent {
   protected readonly resetLoading = signal(false);
   protected readonly passwordError = signal<string | null>(null);
   protected readonly passwordSuccess = signal(false);
+  protected readonly dashboardLoading = signal(true);
+  protected readonly dashboardError = signal<string | null>(null);
+  protected readonly dashboard = signal<DashboardData>({
+    salesOrderCount: 0,
+    openOrderCount: 0,
+    closedOrderCount: 0,
+    totalSales: 0,
+    customerCount: 0,
+    itemCount: 0,
+    topCustomers: [],
+    popularItems: [],
+    unavailableResources: [],
+  });
   protected readonly today = new Intl.DateTimeFormat('en', {
     weekday: 'long',
     month: 'long',
@@ -59,6 +74,23 @@ export class HomeComponent {
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', Validators.required],
   });
+
+  ngOnInit(): void {
+    this.dashboardService
+      .load()
+      .pipe(finalize(() => this.dashboardLoading.set(false)))
+      .subscribe({
+        next: (data) => this.dashboard.set(data),
+        error: () => this.dashboardError.set('Dashboard data could not be loaded. Check your ERPNext permissions.'),
+      });
+  }
+
+  protected formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value);
+  }
 
   protected toggleUserMenu(): void {
     this.userMenuOpen.update((open) => !open);
