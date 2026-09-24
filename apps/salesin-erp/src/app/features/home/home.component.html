@@ -1,0 +1,119 @@
+<main class="shell">
+  <aside class="sidebar">
+    <a class="brand" routerLink="/"><b>S</b> Sales<em>In</em></a>
+    <nav>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">▣ <span>Dashboard</span></a><a href="#">▦ <span>Appointments</span></a><a href="#">♟ <span>Customers</span></a><a href="#">▤ <span>Items</span></a><a href="#">🛒 <span>Sales</span></a><a href="#">▧ <span>Reports</span></a><a href="#">▣ <span>B2B eCommerce</span></a><a href="#">⚙ <span>Administration</span></a><a href="#">! <span>Feedback</span></a><a href="#">? <span>Help</span></a>
+    </nav>
+    <div class="sidebar-user">
+      @if (userImage(); as image) {
+        <img class="user-avatar" [src]="image" alt="" />
+      } @else {
+        <span class="user-avatar user-avatar-fallback" aria-hidden="true">{{ userInitial() }}</span>
+      }
+      <span class="user-name">{{ userName() }}</span>
+      <button type="button" (click)="signOut()">Logout</button>
+    </div>
+  </aside>
+  <section class="page">
+    <header class="topbar">
+      <h1>Dashboard</h1>
+      <div class="user-menu">
+        <button
+          class="user-menu-trigger"
+          type="button"
+          aria-label="Open user menu"
+          [attr.aria-expanded]="userMenuOpen()"
+          (click)="toggleUserMenu()"
+        >
+          @if (userImage(); as image) {
+            <img class="topbar-avatar" [src]="image" alt="" />
+          } @else {
+            <i class="topbar-avatar topbar-avatar-fallback" aria-hidden="true">{{ userInitial() }}</i>
+          }
+          <span>{{ userName() }}</span> <b>⌄</b>
+        </button>
+        @if (userMenuOpen()) {
+          <div class="user-menu-panel">
+            <button type="button" (click)="openPasswordDialog()">Change password</button>
+            <button type="button" (click)="signOut()">Logout</button>
+          </div>
+        }
+      </div>
+    </header>
+    <button class="fab" aria-label="Create new">+</button>
+    @if (passwordDialogOpen()) {
+      <div class="dialog-backdrop" (click)="closePasswordDialog()">
+        <section
+          class="password-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="change-password-title"
+          (click)="$event.stopPropagation()"
+        >
+          <header>
+            <h2 id="change-password-title">Change password</h2>
+            <button type="button" class="dialog-close" aria-label="Close" (click)="closePasswordDialog()">×</button>
+          </header>
+          @if (passwordSuccess()) {
+            <p class="password-success" role="status">Your password was changed successfully.</p>
+            <button type="button" class="dialog-action" (click)="closePasswordDialog()">Done</button>
+          } @else {
+            <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+              <mat-form-field appearance="outline">
+                <mat-label>Current password</mat-label>
+                <input matInput type="password" formControlName="oldPassword" autocomplete="current-password" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>New password</mat-label>
+                <input matInput type="password" formControlName="newPassword" autocomplete="new-password" />
+                @if (passwordForm.controls.newPassword.hasError('minlength')) {
+                  <mat-error>Use at least 8 characters.</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Confirm new password</mat-label>
+                <input matInput type="password" formControlName="confirmPassword" autocomplete="new-password" />
+              </mat-form-field>
+              @if (passwordError(); as error) {
+                <p class="password-error" role="alert">{{ error }}</p>
+              }
+              <button
+                type="button"
+                class="reset-password-link"
+                [disabled]="resetLoading() || passwordLoading()"
+                (click)="requestPasswordReset()"
+              >
+                {{ resetLoading() ? 'Sending reset link…' : 'Forgot your current password?' }}
+              </button>
+              <div class="dialog-actions">
+                <button type="button" class="dialog-cancel" (click)="closePasswordDialog()">Cancel</button>
+                <button type="submit" class="dialog-action" [disabled]="passwordLoading()">
+                  {{ passwordLoading() ? 'Changing…' : 'Change password' }}
+                </button>
+              </div>
+            </form>
+          }
+        </section>
+      </div>
+    }
+    @if (dashboardLoading()) {
+      <p class="dashboard-status" role="status">Loading dashboard data…</p>
+    } @else if (dashboardError(); as error) {
+      <p class="dashboard-status dashboard-error" role="alert">{{ error }}</p>
+    } @else if (dashboard().unavailableResources.length) {
+      <p class="dashboard-status dashboard-error" role="alert">
+        ERPNext permissions are required for: {{ dashboard().unavailableResources.join(', ') }}.
+      </p>
+    }
+    <section class="grid">
+      <article class="widget metric"><header><b>Total sales</b><small>Live from Sales Orders</small></header><strong>{{ formatCurrency(dashboard().totalSales) }}</strong><span>{{ dashboard().salesOrderCount }} orders loaded</span></article>
+      <article class="widget metric"><header><b>Orders</b><small>Current ERPNext data</small></header><strong>{{ dashboard().salesOrderCount }}</strong><span>{{ dashboard().openOrderCount }} open · {{ dashboard().closedOrderCount }} closed</span></article>
+      <article class="widget metric"><header><b>Accounts &amp; items</b><small>Current ERPNext data</small></header><strong>{{ dashboard().customerCount }} / {{ dashboard().itemCount }}</strong><span>customers / items</span></article>
+      <article class="widget pie-card"><header><b>Total - Top 10 Item Volume</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie multi"></div></article>
+      <article class="widget pie-card"><header><b>Total - Volume by User</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie"></div></article>
+      <article class="widget"><header><b>Performance Snapshot</b><small>Live from Sales Orders</small></header><table><tr><th></th><th>Value</th></tr><tr><td>Sales orders</td><td>{{ dashboard().salesOrderCount }}</td></tr><tr><td>Total sales</td><td>{{ formatCurrency(dashboard().totalSales) }}</td></tr><tr><td>Open orders</td><td>{{ dashboard().openOrderCount }}</td></tr><tr><td>Closed orders</td><td>{{ dashboard().closedOrderCount }}</td></tr></table></article>
+      <article class="widget list"><header><b>Top Customers</b><small>Ranked by loaded order value</small></header>@for (customer of dashboard().topCustomers; track customer.name) {<p>{{ customer.name }} <strong>{{ formatCurrency(customer.total) }}　›</strong></p>} @empty {<p>No sales data available.</p>}</article>
+      <article class="widget list"><header><b>Popular Items</b><small>Ranked by ordered quantity</small></header>@for (item of dashboard().popularItems; track item.name) {<p>{{ item.name }} <strong>{{ item.quantity }}　›</strong></p>} @empty {<p>No item data available.</p>}</article>
+    </section>
+  </section>
+</main>
