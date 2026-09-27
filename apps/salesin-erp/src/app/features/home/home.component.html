@@ -1,19 +1,5 @@
 <main class="shell">
-  <aside class="sidebar">
-    <a class="brand" routerLink="/"><b>S</b> Sales<em>In</em></a>
-    <nav>
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">▣ <span>Dashboard</span></a><a href="#">▦ <span>Appointments</span></a><a href="#">♟ <span>Customers</span></a><a href="#">▤ <span>Items</span></a><a href="#">🛒 <span>Sales</span></a><a href="#">▧ <span>Reports</span></a><a href="#">▣ <span>B2B eCommerce</span></a><a href="#">⚙ <span>Administration</span></a><a href="#">! <span>Feedback</span></a><a href="#">? <span>Help</span></a>
-    </nav>
-    <div class="sidebar-user">
-      @if (userImage(); as image) {
-        <img class="user-avatar" [src]="image" alt="" />
-      } @else {
-        <span class="user-avatar user-avatar-fallback" aria-hidden="true">{{ userInitial() }}</span>
-      }
-      <span class="user-name">{{ userName() }}</span>
-      <button type="button" (click)="signOut()">Logout</button>
-    </div>
-  </aside>
+  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
   <section class="page">
     <header class="topbar">
       <h1>Dashboard</h1>
@@ -40,6 +26,9 @@
         }
       </div>
     </header>
+    @if (logoutError(); as error) {
+      <p class="dashboard-status dashboard-error" role="alert">{{ error }}</p>
+    }
     <button class="fab" aria-label="Create new">+</button>
     @if (passwordDialogOpen()) {
       <div class="dialog-backdrop" (click)="closePasswordDialog()">

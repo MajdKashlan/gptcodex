@@ -1,0 +1,137 @@
+:host {
+  background: #3b4558;
+  display: flex;
+  flex: 0 0 168px;
+  flex-direction: column;
+}
+
+.sidebar {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.brand {
+  align-items: center;
+  border-bottom: 1px solid #168eb9;
+  color: #fff;
+  display: flex;
+  font-size: 22px;
+  font-weight: bold;
+  gap: 7px;
+  height: 52px;
+  padding-left: 16px;
+  text-decoration: none;
+}
+
+.brand b {
+  border: 2px solid #fff;
+  border-radius: 3px;
+  font-size: 19px;
+  padding: 1px 5px;
+}
+
+.brand em {
+  font-size: 16px;
+  font-weight: normal;
+}
+
+nav {
+  padding-top: 8px;
+}
+
+nav a {
+  align-items: center;
+  color: #f0f2f7;
+  display: flex;
+  font-size: 22px;
+  gap: 10px;
+  min-height: 39px;
+  padding: 7px 13px;
+  text-decoration: none;
+}
+
+nav a span {
+  font-size: 13px;
+}
+
+nav a:hover,
+nav .active {
+  background: #46536b;
+}
+
+.sidebar-user {
+  align-items: center;
+  border-top: 1px solid #59657b;
+  color: #fff;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 34px 1fr;
+  margin-top: auto;
+  padding: 13px;
+}
+
+.user-avatar {
+  align-items: center;
+  background: #00a1d3;
+  border-radius: 50%;
+  display: flex;
+  font-size: 15px;
+  font-weight: bold;
+  height: 32px;
+  justify-content: center;
+  object-fit: cover;
+  width: 32px;
+}
+
+.user-avatar-fallback {
+  color: #fff;
+}
+
+.user-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user button {
+  background: transparent;
+  border: 1px solid #8b98ae;
+  border-radius: 3px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  grid-column: 1 / -1;
+  padding: 6px;
+}
+
+.sidebar-user button:hover {
+  background: #536178;
+}
+
+@media (max-width: 700px) {
+  :host {
+    flex-basis: 58px;
+  }
+
+  .brand {
+    font-size: 0;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .brand em,
+  .sidebar-user {
+    display: none;
+  }
+
+  nav a {
+    justify-content: center;
+    padding: 8px;
+  }
+
+  nav a span {
+    display: none;
+  }
+}

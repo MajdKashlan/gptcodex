@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "prestart": "node scripts/create-dev-cert.mjs",
+    "start": "ng serve --ssl --ssl-cert ssl/localhost.pem --ssl-key ssl/localhost-key.pem",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
@@ -31,6 +32,7 @@
     "@angular/compiler-cli": "^22.1.0",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
+    "selfsigned": "^5.5.0",
     "typescript": "~6.0.2",
     "vitest": "^4.0.8"
   }

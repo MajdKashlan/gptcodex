@@ -1,6 +1,6 @@
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { catchError, finalize, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { ERP_NEXT_CONFIG } from '../config/erpnext.config';
 import {
   ApiTokenCredentials,
@@ -18,6 +18,7 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class ErpNextAuthService {
+  private static readonly legacyRememberedCredentialsKey = 'salesin.erp.api-token';
   private readonly http = inject(HttpClient);
   private readonly config = inject(ERP_NEXT_CONFIG);
   private readonly credentials = signal<ApiTokenCredentials | null>(null);
@@ -28,11 +29,19 @@ export class ErpNextAuthService {
   readonly currentUser = computed(() => this.authState().user);
 
   apiUrl(path: string): string {
-    return this.config.baseUrl.replace(/\/$/, '') + '/' + path.replace(/^\//, '');
+    const apiPath = '/' + path.replace(/^\//, '');
+    return this.usesLocalApiProxy()
+      ? apiPath
+      : this.config.baseUrl.replace(/\/$/, '') + apiPath;
   }
 
   isErpNextApiUrl(url: string): boolean {
-    return url.startsWith(this.config.baseUrl.replace(/\/$/, ''));
+    return url.startsWith('/api/') || url.startsWith(this.config.baseUrl.replace(/\/$/, ''));
+  }
+
+  private usesLocalApiProxy(): boolean {
+    return typeof globalThis.location !== 'undefined' &&
+      ['localhost', '127.0.0.1', '::1'].includes(globalThis.location.hostname);
   }
 
   authorizationHeader(): string | null {
@@ -42,7 +51,9 @@ export class ErpNextAuthService {
       : null;
   }
 
-  loginWithApiToken(credentials: ApiTokenCredentials): Observable<string> {
+  loginWithApiToken(
+    credentials: ApiTokenCredentials,
+  ): Observable<string> {
     const sanitized = {
       apiKey: credentials.apiKey.trim(),
       apiSecret: credentials.apiSecret.trim(),
@@ -51,7 +62,10 @@ export class ErpNextAuthService {
     this.credentials.set(sanitized);
 
     return this.getUserProfile().pipe(
-      tap((user) => this.authState.set({ mode: 'api-token', user })),
+      tap((user) => {
+        this.removeLegacyRememberedCredentials();
+        this.authState.set({ mode: 'api-token', user });
+      }),
       map((user) => user.fullName),
       catchError((error: unknown) => {
         this.clearAuthentication();
@@ -61,6 +75,8 @@ export class ErpNextAuthService {
   }
 
   loginWithPassword(credentials: PasswordCredentials): Observable<string> {
+    this.clearAuthentication();
+
     return this.http
       .post<ErpNextLoginResponse>(
         this.apiUrl('/api/method/login'),
@@ -73,11 +89,7 @@ export class ErpNextAuthService {
         },
       )
       .pipe(
-        map((response) => ({
-          username: credentials.username.trim(),
-          fullName: response.full_name?.trim() || credentials.username.trim(),
-          imageUrl: null,
-        })),
+        switchMap(() => this.getUserProfile(true)),
         tap((user) => this.authState.set({ mode: 'session', user })),
         map((user) => user.fullName),
       );
@@ -94,22 +106,22 @@ export class ErpNextAuthService {
     );
   }
 
+  restoreAuthentication(): Observable<string> {
+    this.removeLegacyRememberedCredentials();
+    return this.restoreSession();
+  }
+
   logout(): Observable<void> {
-    const mode = this.authState().mode;
-    this.clearAuthentication();
-
-    if (mode !== 'session') {
-      return new Observable<void>((subscriber) => subscriber.complete());
-    }
-
     return this.http
-      .get(this.apiUrl('/api/method/logout'), {
+      .post(this.apiUrl('/api/method/logout'), {}, {
         withCredentials: true,
-        context: new HttpContext().set(SKIP_ERP_NEXT_AUTH, true),
+        context: new HttpContext()
+          .set(SKIP_ERP_NEXT_AUTH, true)
+          .set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
       })
       .pipe(
+        tap(() => this.clearAuthentication()),
         map(() => undefined),
-        finalize(() => this.clearAuthentication()),
       );
   }
 
@@ -141,6 +153,14 @@ export class ErpNextAuthService {
     this.clearAuthentication();
   }
 
+  private removeLegacyRememberedCredentials(): void {
+    try {
+      localStorage.removeItem(ErpNextAuthService.legacyRememberedCredentialsKey);
+    } catch {
+      // Browser storage may be unavailable, such as during server rendering.
+    }
+  }
+
   private getLoggedInUser(withCredentials = false): Observable<string> {
     return this.http
       .get<ErpNextMessageResponse<string>>(
@@ -150,7 +170,14 @@ export class ErpNextAuthService {
           context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
         },
       )
-      .pipe(map((response) => response.message));
+      .pipe(
+        map((response) => response.message),
+        switchMap((username) =>
+          username && username !== 'Guest'
+            ? of(username)
+            : throwError(() => new Error('No active ERPNext session.')),
+        ),
+      );
   }
 
   private getUserProfile(withCredentials = false): Observable<UserProfile> {
@@ -169,7 +196,10 @@ export class ErpNextAuthService {
               username,
               fullName: response.data?.full_name?.trim() || username,
               imageUrl: response.data?.user_image
-                ? new URL(response.data.user_image, this.config.baseUrl).toString()
+                ? new URL(
+                    response.data.user_image,
+                    this.config.baseUrl,
+                  ).toString()
                 : null,
             })),
             catchError(() => of({ username, fullName: username, imageUrl: null })),
@@ -181,5 +211,6 @@ export class ErpNextAuthService {
   private clearAuthentication(): void {
     this.credentials.set(null);
     this.authState.set({ mode: 'anonymous', user: null });
+    this.removeLegacyRememberedCredentials();
   }
 }

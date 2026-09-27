@@ -1,12 +1,13 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { finalize } from 'rxjs';
 import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
+import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { DashboardData, HomeDashboardService } from './home-dashboard.service';
 
 interface QuickAction {
@@ -23,8 +24,7 @@ interface QuickAction {
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
-    RouterLink,
-    RouterLinkActive,
+    SidebarComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
@@ -46,6 +46,7 @@ export class HomeComponent implements OnInit {
   protected readonly passwordSuccess = signal(false);
   protected readonly dashboardLoading = signal(true);
   protected readonly dashboardError = signal<string | null>(null);
+  protected readonly logoutError = signal<string | null>(null);
   protected readonly dashboard = signal<DashboardData>({
     salesOrderCount: 0,
     openOrderCount: 0,
@@ -76,8 +77,19 @@ export class HomeComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.dashboardService
-      .load()
+    if (this.auth.isAuthenticated()) {
+      this.loadDashboard();
+      return;
+    }
+
+    this.auth.restoreAuthentication().subscribe({
+      next: () => this.loadDashboard(),
+      error: () => void this.router.navigate(['/login']),
+    });
+  }
+
+  private loadDashboard(): void {
+    this.dashboardService.load()
       .pipe(finalize(() => this.dashboardLoading.set(false)))
       .subscribe({
         next: (data) => this.dashboard.set(data),
@@ -188,9 +200,10 @@ export class HomeComponent implements OnInit {
   }
 
   protected signOut(): void {
+    this.logoutError.set(null);
     this.auth.logout().subscribe({
       complete: () => void this.router.navigate(['/login']),
-      error: () => void this.router.navigate(['/login']),
+      error: () => this.logoutError.set('Could not log out from ERPNext. Check your connection and try again.'),
     });
   }
 }

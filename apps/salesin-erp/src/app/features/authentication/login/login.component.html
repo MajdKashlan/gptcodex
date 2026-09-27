@@ -6,6 +6,9 @@
     </mat-card-header>
 
     <mat-card-content>
+      @if (checkingSession()) {
+        <p class="hint" role="status">Checking your existing session…</p>
+      } @else {
       <div class="mode-switch" role="group" aria-label="Authentication method">
         <button matButton="tonal" [class.selected]="mode() === 'api-token'" (click)="selectMode('api-token')">
           API token
@@ -25,7 +28,7 @@
             <mat-label>API secret</mat-label>
             <input matInput type="password" formControlName="apiSecret" autocomplete="current-password" />
           </mat-form-field>
-          <p class="hint">The API secret is held only in this browser tab and is cleared on refresh.</p>
+          <p class="hint">API-token sign-in is limited to this browser session. Use password sign-in for ERPNext cookie-based login.</p>
           <button matButton="filled" type="submit" [disabled]="loading()">
             {{ loading() ? 'Signing in…' : 'Sign in' }}
           </button>
@@ -40,7 +43,7 @@
             <mat-label>Password</mat-label>
             <input matInput type="password" formControlName="password" autocomplete="current-password" />
           </mat-form-field>
-          <p class="hint">This requires ERPNext to allow credentialed CORS requests from this app.</p>
+          <p class="hint">ERPNext keeps your sign-in in a secure session cookie. Its lifetime is controlled by the ERPNext session expiry setting.</p>
           <button matButton="filled" type="submit" [disabled]="loading()">
             {{ loading() ? 'Signing in…' : 'Sign in' }}
           </button>
@@ -49,6 +52,7 @@
 
       @if (errorMessage(); as error) {
         <p class="error" role="alert">{{ error }}</p>
+      }
       }
     </mat-card-content>
   </mat-card>

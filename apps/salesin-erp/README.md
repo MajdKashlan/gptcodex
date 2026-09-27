@@ -1,3 +1,4 @@
+To remove the browser trust warning on Windows, run `Import-Certificate -FilePath ssl/localhost.cer -CertStoreLocation Cert:\CurrentUser\Root` in PowerShell. This trusts the localhost certificate only for your Windows user profile. The certificate is for local development; use a certificate issued for your domain when deploying.
 # SalesinErp
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.8.
@@ -7,10 +8,11 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 To start a local development server, run:
 
 ```bash
-ng serve
+npm start
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open `https://localhost:4200/`. The generated certificate is self-signed, so browsers may show a trust warning. This certificate is for local development only; use a certificate issued for your domain when deploying.
 
 ## Code scaffolding
 

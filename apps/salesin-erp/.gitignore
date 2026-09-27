@@ -38,6 +38,8 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+/ssl/*.pem
+/ssl/*.cer
 
 # System files
 .DS_Store
