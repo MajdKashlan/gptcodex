@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { finalize, fromEvent, merge, startWith, switchMap, timer } from 'rxjs';
 import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { PageTopbarAction, PageTopbarComponent } from '../../shared/components/page-topbar/page-topbar.component';
 import { DashboardData, HomeDashboardService } from './home-dashboard.service';
 
 interface QuickAction {
@@ -26,6 +27,7 @@ interface QuickAction {
     MatFormFieldModule,
     MatInputModule,
     SidebarComponent,
+    PageTopbarComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
@@ -40,8 +42,10 @@ export class HomeComponent implements OnInit {
 
   protected readonly userName = computed(() => this.auth.currentUser()?.fullName || 'User');
   protected readonly userImage = computed(() => this.auth.currentUser()?.imageUrl);
-  protected readonly userInitial = computed(() => this.userName().slice(0, 1).toUpperCase());
-  protected readonly userMenuOpen = signal(false);
+  protected readonly topbarActions: PageTopbarAction[] = [
+    { id: 'change-password', label: 'Change password' },
+    { id: 'logout', label: 'Logout' },
+  ];
   protected readonly passwordDialogOpen = signal(false);
   protected readonly passwordLoading = signal(false);
   protected readonly resetLoading = signal(false);
@@ -131,12 +135,15 @@ export class HomeComponent implements OnInit {
     }).format(value);
   }
 
-  protected toggleUserMenu(): void {
-    this.userMenuOpen.update((open) => !open);
+  protected handleTopbarAction(actionId: string): void {
+    if (actionId === 'change-password') {
+      this.openPasswordDialog();
+    } else if (actionId === 'logout') {
+      this.signOut();
+    }
   }
 
   protected openPasswordDialog(): void {
-    this.userMenuOpen.set(false);
     this.passwordError.set(null);
     this.passwordSuccess.set(false);
     this.passwordForm.reset();
@@ -227,7 +234,6 @@ export class HomeComponent implements OnInit {
   }
 
   protected signOut(): void {
-    this.userMenuOpen.set(false);
     this.logoutError.set(null);
     this.logoutConfirmationOpen.set(true);
   }

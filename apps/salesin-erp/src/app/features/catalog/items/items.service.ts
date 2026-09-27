@@ -52,6 +52,21 @@ export class ItemsService {
       .pipe(map((response) => (response.data ?? []).map((group) => group.name)));
   }
 
+  loadUoms(): Observable<string[]> {
+    const params = new HttpParams()
+      .set('fields', JSON.stringify(['name']))
+      .set('limit_page_length', '500')
+      .set('order_by', 'name asc');
+
+    return this.http
+      .get<ErpNextListResponse<{ name: string }>>(this.auth.apiUrl('/api/resource/UOM'), {
+        params,
+        withCredentials: true,
+        context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
+      })
+      .pipe(map((response) => (response.data ?? []).map((uom) => uom.name)));
+  }
+
   search(search: ItemSearch): Observable<ErpNextItem[]> {
     const fields = [
       'name',

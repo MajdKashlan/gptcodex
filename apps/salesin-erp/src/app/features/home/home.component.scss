@@ -19,81 +19,6 @@
     width: auto
 }
 
-.topbar {
-    align-items: center;
-    background: linear-gradient(100deg, #0098c9, #2bc0d2);
-    box-shadow: 0 1px 3px #aaa;
-    color: #fff;
-    display: flex;
-    height: 71px;
-    justify-content: space-between;
-    padding: 0 31px 0 16px
-}
-
-.topbar h1 {
-    font-size: 24px;
-    font-weight: 400
-}
-
-.topbar div {
-    font-size: 13px
-}
-
-.user-menu {
-    position: relative
-}
-
-.user-menu-trigger {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    color: #fff;
-    cursor: pointer;
-    display: flex;
-    font: inherit;
-    gap: 5px;
-    padding: 8px 0
-}
-
-.user-menu-trigger:hover,
-.user-menu-trigger:focus-visible {
-    text-decoration: underline
-}
-
-.user-menu-trigger b {
-    font-size: 11px;
-    font-weight: normal
-}
-
-.user-menu-panel {
-    background: #fff;
-    border: 1px solid #d7dce2;
-    box-shadow: 0 4px 12px #0003;
-    min-width: 156px;
-    padding: 5px;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    z-index: 4
-}
-
-.user-menu-panel button {
-    background: transparent;
-    border: 0;
-    color: #3b4558;
-    cursor: pointer;
-    display: block;
-    font-size: 12px;
-    padding: 9px 10px;
-    text-align: left;
-    width: 100%
-}
-
-.user-menu-panel button:hover,
-.user-menu-panel button:focus-visible {
-    background: #eef8fb
-}
-
 .dialog-backdrop {
     align-items: center;
     background: #16202b99;
@@ -219,15 +144,6 @@
 .dialog-cancel:disabled {
     cursor: wait;
     opacity: .65
-}
-
-.topbar i {
-    background: #fff;
-    border-radius: 50%;
-    color: #18aacd;
-    font-style: normal;
-    font-size: 16px;
-    padding: 4px
 }
 
 .fab {
@@ -444,53 +360,14 @@ td:first-child {
         width: auto
     }
 
-    .topbar {
-        padding: 0 12px
-    }
-
     .grid {
         grid-template-columns: 1fr;
         padding: 14px 8px
     }
 
-    .topbar div {
-        font-size: 0
-    }
-
-    .user-menu-trigger span,
-    .user-menu-trigger b {
-        display: none
-    }
-
-    .user-menu-trigger i {
-        font-size: 16px
-    }
-
-    .topbar h1 {
-        font-size: 20px
-    }
-
     .fab {
         right: 10px;
     }
-}
-
-.topbar-avatar {
-    align-items: center;
-    border-radius: 50%;
-    display: flex;
-    height: 25px;
-    justify-content: center;
-    object-fit: cover;
-    width: 25px
-}
-
-.topbar-avatar-fallback {
-    background: #fff;
-    color: #00a1d3;
-    font-size: 12px;
-    font-style: normal;
-    font-weight: bold
 }
 
 .metric {

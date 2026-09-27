@@ -1,24 +1,13 @@
 <main class="items-shell">
   <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
   <section class="items-page">
-    <header class="page-header">
-      <h1>Items</h1>
-      <div class="user-menu">
-        <button class="user-menu-trigger" type="button" aria-label="Open user menu" [attr.aria-expanded]="userMenuOpen()" (click)="toggleUserMenu()">
-          @if (userImage(); as image) {
-            <img class="topbar-avatar" [src]="image" alt="" />
-          } @else {
-            <i class="topbar-avatar topbar-avatar-fallback" aria-hidden="true">{{ userInitial() }}</i>
-          }
-          <span>{{ userName() }}</span><b>⌄</b>
-        </button>
-        @if (userMenuOpen()) {
-          <div class="user-menu-panel">
-            <button type="button" (click)="signOut()">Logout</button>
-          </div>
-        }
-      </div>
-    </header>
+    <app-page-topbar
+      title="Items"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
     <button class="new-item-button" type="button" aria-label="Create new item" title="Create new item" (click)="openNewItem()">+</button>
 
     @if (createNotice(); as notice) {
@@ -52,7 +41,7 @@
 
     <div class="list-toolbar">
       <label class="select-page"><input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" aria-label="Select all visible items" /></label>
-      <button class="icon-button refresh" type="button" (click)="refresh()" aria-label="Refresh items" title="Refresh items">↻</button>
+      <button class="icon-button refresh" type="button" [disabled]="loading()" [attr.aria-busy]="loading()" (click)="refresh()" aria-label="Refresh items" title="Refresh items">↻</button>
       <span class="selection-count">{{ selectedNames().size }} selected</span>
       <span class="result-count">{{ items().length }} items loaded</span>
     </div>
@@ -126,7 +115,7 @@
                 <label>Code<input formControlName="itemCode" autocomplete="off" /></label>
                 <label>Bar Code<input formControlName="barcode" autocomplete="off" /></label>
                 <label>Sales Units <span>*</span><input type="number" min="1" formControlName="salesUnits" /></label>
-                <label>Unit of Sale <span>*</span><input formControlName="salesUom" autocomplete="off" /></label>
+                <label>Unit of Sale <span>*</span><select formControlName="salesUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
                 <label>Sales Unit Price <span>*</span><input type="number" min="0.01" step="0.01" formControlName="price" /></label>
                 <label class="field-wide">Price List <span>*</span><input formControlName="priceList" /></label>
               </div>
@@ -135,7 +124,7 @@
                 <h3>Locations &amp; Stock Levels <span>*</span></h3>
                 <label class="stock-option"><input type="checkbox" formControlName="isStockItem" /><span>Maintain stock levels for this item</span></label>
                 <p>Initial stock quantities and warehouse balances are managed through ERPNext stock transactions after the item is created.</p>
-                <label class="uom-field">Stock Unit of Measure<input formControlName="stockUom" /></label>
+                <label class="uom-field">Stock Unit of Measure <span>*</span><select formControlName="stockUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
               </section>
             } @else {
               <section class="image-fields">

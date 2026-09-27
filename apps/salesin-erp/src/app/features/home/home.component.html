@@ -1,31 +1,13 @@
 <main class="shell">
   <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
   <section class="page">
-    <header class="topbar">
-      <h1>Dashboard</h1>
-      <div class="user-menu">
-        <button
-          class="user-menu-trigger"
-          type="button"
-          aria-label="Open user menu"
-          [attr.aria-expanded]="userMenuOpen()"
-          (click)="toggleUserMenu()"
-        >
-          @if (userImage(); as image) {
-            <img class="topbar-avatar" [src]="image" alt="" />
-          } @else {
-            <i class="topbar-avatar topbar-avatar-fallback" aria-hidden="true">{{ userInitial() }}</i>
-          }
-          <span>{{ userName() }}</span> <b>⌄</b>
-        </button>
-        @if (userMenuOpen()) {
-          <div class="user-menu-panel">
-            <button type="button" (click)="openPasswordDialog()">Change password</button>
-            <button type="button" (click)="signOut()">Logout</button>
-          </div>
-        }
-      </div>
-    </header>
+    <app-page-topbar
+      title="Dashboard"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
     @if (logoutError(); as error) {
       <p class="dashboard-status dashboard-error" role="alert">{{ error }}</p>
     }

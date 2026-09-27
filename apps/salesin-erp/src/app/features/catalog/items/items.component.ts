@@ -7,11 +7,12 @@ import { finalize, forkJoin, fromEvent, merge, Observable, of, startWith, switch
 import { ErpNextAuthService } from '../../../core/auth/erpnext-auth.service';
 import { ErpNextItem } from '../../../models/item.models';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { PageTopbarAction, PageTopbarComponent } from '../../../shared/components/page-topbar/page-topbar.component';
 import { ItemSearchMode, ItemsService } from './items.service';
 
 @Component({
   selector: 'app-items',
-  imports: [CommonModule, ReactiveFormsModule, SidebarComponent],
+  imports: [CommonModule, ReactiveFormsModule, SidebarComponent, PageTopbarComponent],
   templateUrl: './items.component.html',
   styleUrl: './items.component.scss',
 })
@@ -25,12 +26,12 @@ export class ItemsComponent implements OnInit {
 
   protected readonly userName = computed(() => this.auth.currentUser()?.fullName || 'User');
   protected readonly userImage = computed(() => this.auth.currentUser()?.imageUrl);
-  protected readonly userInitial = computed(() => this.userName().slice(0, 1).toUpperCase());
-  protected readonly userMenuOpen = signal(false);
+  protected readonly topbarActions: PageTopbarAction[] = [{ id: 'logout', label: 'Logout' }];
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly items = signal<ErpNextItem[]>([]);
   protected readonly categories = signal<string[]>([]);
+  protected readonly uoms = signal<string[]>([]);
   protected readonly selectedCategory = signal<string | null>(null);
   protected readonly searchMode = signal<ItemSearchMode>('either');
   protected readonly selectedNames = signal<Set<string>>(new Set());
@@ -47,8 +48,8 @@ export class ItemsComponent implements OnInit {
     itemCode: [''],
     barcode: [''],
     itemGroup: ['', Validators.required],
-    stockUom: ['Nos', Validators.required],
-    salesUom: ['Nos', Validators.required],
+    stockUom: ['', Validators.required],
+    salesUom: ['', Validators.required],
     salesUnits: [1, [Validators.required, Validators.min(1)]],
     price: [0, [Validators.required, Validators.min(0.01)]],
     priceList: ['Standard Selling', Validators.required],
@@ -95,8 +96,8 @@ export class ItemsComponent implements OnInit {
       itemCode: '',
       barcode: '',
       itemGroup: this.categories()[0] ?? '',
-      stockUom: 'Nos',
-      salesUom: 'Nos',
+      stockUom: this.uoms()[0] ?? '',
+      salesUom: this.uoms()[0] ?? '',
       salesUnits: 1,
       price: 0,
       priceList: 'Standard Selling',
@@ -142,8 +143,10 @@ export class ItemsComponent implements OnInit {
       });
   }
 
-  protected toggleUserMenu(): void {
-    this.userMenuOpen.update((open) => !open);
+  protected handleTopbarAction(actionId: string): void {
+    if (actionId === 'logout') {
+      this.signOut();
+    }
   }
 
   protected toggleAll(): void {
@@ -173,7 +176,6 @@ export class ItemsComponent implements OnInit {
   }
 
   protected signOut(): void {
-    this.userMenuOpen.set(false);
     this.logoutConfirmationOpen.set(true);
   }
 
@@ -196,11 +198,20 @@ export class ItemsComponent implements OnInit {
 
   private loadCatalog(): void {
     this.loading.set(true);
-    forkJoin({ categories: this.itemsService.loadCategories(), items: this.itemsService.search(this.currentSearch()) })
+    forkJoin({
+      categories: this.itemsService.loadCategories(),
+      uoms: this.itemsService.loadUoms(),
+      items: this.itemsService.search(this.currentSearch()),
+    })
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ categories, items }) => {
+        next: ({ categories, uoms, items }) => {
           this.categories.set(categories);
+          this.uoms.set(uoms);
+          if (!this.newItemForm.controls.stockUom.value && uoms.length) {
+            this.newItemForm.controls.stockUom.setValue(uoms[0]);
+            this.newItemForm.controls.salesUom.setValue(uoms[0]);
+          }
           this.items.set(items);
           this.error.set(null);
           this.selectedNames.set(new Set());

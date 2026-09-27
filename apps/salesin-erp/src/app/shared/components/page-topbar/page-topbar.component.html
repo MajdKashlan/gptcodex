@@ -1,0 +1,26 @@
+<header class="topbar">
+  <h1>{{ title() }}</h1>
+  <div class="user-menu">
+    <button
+      class="user-menu-trigger"
+      type="button"
+      aria-label="Open user menu"
+      [attr.aria-expanded]="menuOpen()"
+      (click)="toggleMenu()"
+    >
+      @if (userImage(); as image) {
+        <img class="topbar-avatar" [src]="image" alt="" />
+      } @else {
+        <i class="topbar-avatar topbar-avatar-fallback" aria-hidden="true">{{ userInitial() }}</i>
+      }
+      <span>{{ userName() }}</span><b aria-hidden="true">⌄</b>
+    </button>
+    @if (menuOpen()) {
+      <div class="user-menu-panel">
+        @for (action of actions(); track action.id) {
+          <button type="button" (click)="selectAction(action.id)">{{ action.label }}</button>
+        }
+      </div>
+    }
+  </div>
+</header>
