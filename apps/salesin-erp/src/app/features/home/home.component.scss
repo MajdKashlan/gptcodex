@@ -113,6 +113,20 @@
     width: 100%
 }
 
+.logout-dialog h2 {
+    color: #3b4558;
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0 0 10px
+}
+
+.logout-dialog p {
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0
+}
+
 .password-dialog header {
     align-items: center;
     display: flex;
@@ -200,6 +214,11 @@
 .dialog-cancel {
     background: #edf0f2;
     color: #3b4558
+}
+
+.dialog-cancel:disabled {
+    cursor: wait;
+    opacity: .65
 }
 
 .topbar i {

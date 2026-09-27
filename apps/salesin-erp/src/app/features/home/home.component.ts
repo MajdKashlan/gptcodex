@@ -1,11 +1,12 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { finalize } from 'rxjs';
+import { finalize, fromEvent, merge, startWith, switchMap, timer } from 'rxjs';
 import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { DashboardData, HomeDashboardService } from './home-dashboard.service';
@@ -30,6 +31,8 @@ interface QuickAction {
   styleUrl: './home.component.scss',
 })
 export class HomeComponent implements OnInit {
+  private static readonly idleTimeoutMs = 60 * 60 * 1000;
+  private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(ErpNextAuthService);
   private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
@@ -47,6 +50,8 @@ export class HomeComponent implements OnInit {
   protected readonly dashboardLoading = signal(true);
   protected readonly dashboardError = signal<string | null>(null);
   protected readonly logoutError = signal<string | null>(null);
+  protected readonly logoutConfirmationOpen = signal(false);
+  protected readonly logoutLoading = signal(false);
   protected readonly dashboard = signal<DashboardData>({
     salesOrderCount: 0,
     openOrderCount: 0,
@@ -78,14 +83,36 @@ export class HomeComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
+      this.startIdleLogoutTimer();
       this.loadDashboard();
       return;
     }
 
     this.auth.restoreAuthentication().subscribe({
-      next: () => this.loadDashboard(),
+      next: () => {
+        this.startIdleLogoutTimer();
+        this.loadDashboard();
+      },
       error: () => void this.router.navigate(['/login']),
     });
+  }
+
+  private startIdleLogoutTimer(): void {
+    const activityEvents = merge(
+      fromEvent(document, 'pointerdown'),
+      fromEvent(document, 'pointermove'),
+      fromEvent(document, 'keydown'),
+      fromEvent(document, 'wheel'),
+      fromEvent(document, 'touchstart'),
+    );
+
+    activityEvents
+      .pipe(
+        startWith(null),
+        switchMap(() => timer(HomeComponent.idleTimeoutMs)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.performSignOut());
   }
 
   private loadDashboard(): void {
@@ -200,10 +227,33 @@ export class HomeComponent implements OnInit {
   }
 
   protected signOut(): void {
+    this.userMenuOpen.set(false);
     this.logoutError.set(null);
+    this.logoutConfirmationOpen.set(true);
+  }
+
+  protected cancelSignOut(): void {
+    if (!this.logoutLoading()) {
+      this.logoutConfirmationOpen.set(false);
+    }
+  }
+
+  protected confirmSignOut(): void {
+    this.performSignOut();
+  }
+
+  private performSignOut(): void {
+    this.logoutError.set(null);
+    this.logoutLoading.set(true);
     this.auth.logout().subscribe({
-      complete: () => void this.router.navigate(['/login']),
-      error: () => this.logoutError.set('Could not log out from ERPNext. Check your connection and try again.'),
+      next: () => {
+        this.logoutConfirmationOpen.set(false);
+        void this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.logoutError.set('Could not log out from ERPNext. Check your connection and try again.');
+        this.logoutLoading.set(false);
+      },
     });
   }
 }

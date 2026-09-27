@@ -29,6 +29,26 @@
     @if (logoutError(); as error) {
       <p class="dashboard-status dashboard-error" role="alert">{{ error }}</p>
     }
+    @if (logoutConfirmationOpen()) {
+      <div class="dialog-backdrop" (click)="cancelSignOut()">
+        <section
+          class="password-dialog logout-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="logout-title"
+          (click)="$event.stopPropagation()"
+        >
+          <h2 id="logout-title">Log out?</h2>
+          <p>You will need to sign in again to access the dashboard.</p>
+          <div class="dialog-actions">
+            <button type="button" class="dialog-cancel" [disabled]="logoutLoading()" (click)="cancelSignOut()">Cancel</button>
+            <button type="button" class="dialog-action" [disabled]="logoutLoading()" (click)="confirmSignOut()">
+              {{ logoutLoading() ? 'Logging out…' : 'Log out' }}
+            </button>
+          </div>
+        </section>
+      </div>
+    }
     <button class="fab" aria-label="Create new">+</button>
     @if (passwordDialogOpen()) {
       <div class="dialog-backdrop" (click)="closePasswordDialog()">
