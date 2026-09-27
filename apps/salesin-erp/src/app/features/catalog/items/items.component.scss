@@ -204,6 +204,15 @@ input[type='checkbox'] {
   background: #507c8a;
 }
 
+.edit-item {
+  background: #4c74c9;
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
 .selection-count,
 .result-count {
   color: #727b82;
@@ -252,6 +261,15 @@ th {
 
 tbody tr {
   height: 48px;
+}
+
+.item-row {
+  cursor: pointer;
+}
+
+.item-row:focus-visible {
+  outline: 2px solid #079fc3;
+  outline-offset: -2px;
 }
 
 tbody tr:nth-child(odd) {
@@ -477,6 +495,12 @@ tbody tr.row-selected {
   padding: 30px 24px;
 }
 
+.item-identifier {
+  color: #69737a;
+  font-size: 12px;
+  margin: 0 0 24px;
+}
+
 .profile-fields {
   display: grid;
   gap: 28px 24px;
@@ -535,6 +559,98 @@ tbody tr.row-selected {
   min-height: 40px;
 }
 
+.stock-level-table {
+  border: 1px solid #d6dade;
+  margin: 0 0 28px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.stock-level-header,
+.stock-level-row {
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(100px, 1fr);
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.stock-level-header {
+  background: #f3f4f5;
+  border-bottom: 1px solid #d6dade;
+  color: #008fd0;
+  font-size: 12px;
+}
+
+.stock-level-row {
+  font-size: 13px;
+}
+
+.stock-level-row span:last-child {
+  color: #008fd0;
+}
+
+.sales-uom-heading {
+  margin-top: 28px !important;
+}
+
+.sales-uom-row {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 24px;
+  margin: 0 0 14px;
+  max-width: 620px;
+}
+
+.sales-uom-row label {
+  color: #008fd0;
+  display: flex;
+  flex: 1 1 180px;
+  flex-direction: column;
+  font-size: 13px;
+  gap: 5px;
+}
+
+.sales-uom-row select,
+.sales-uom-row input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #aab0b4;
+  border-radius: 0;
+  color: #24292e;
+  font: inherit;
+  min-height: 30px;
+  outline: 0;
+  padding: 3px 2px;
+}
+
+.sales-uom-row select:focus,
+.sales-uom-row input:focus {
+  border-bottom: 2px solid #009fc4;
+}
+
+.remove-uom-button {
+  background: transparent;
+  border: 0;
+  color: #b42318;
+  cursor: pointer;
+  font-size: 20px;
+  height: 32px;
+  width: 32px;
+}
+
+.add-uom-button {
+  background: #079fc3;
+  border: 0;
+  border-radius: 2px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
 .stock-fields p,
 .image-fields p {
   color: #737d84;
@@ -591,6 +707,17 @@ tbody tr.row-selected {
   padding: 0 14px;
 }
 
+.edit-danger-actions,
+.edit-save-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.edit-danger-actions {
+  margin-right: auto;
+}
+
 .new-item-actions button {
   border: 0;
   border-radius: 2px;
@@ -616,12 +743,37 @@ tbody tr.row-selected {
   color: #fff;
 }
 
+.delete-button {
+  background: #f04432;
+  color: #fff;
+}
+
+.duplicate-button {
+  background: #178fe5;
+  color: #fff;
+}
+
+.nested-backdrop {
+  z-index: 7;
+}
+
 @media (max-width: 900px) {
   .search-panel {
     gap: 18px;
     grid-template-columns: minmax(180px, 34%) minmax(0, 1fr);
     margin: 16px;
     padding: 18px;
+  }
+
+  .edit-danger-actions,
+  .edit-save-actions {
+    gap: 5px;
+  }
+
+  .edit-danger-actions button,
+  .edit-save-actions button {
+    min-width: 0;
+    padding: 10px 9px;
   }
 
   .search-controls {

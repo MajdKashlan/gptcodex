@@ -10,6 +10,7 @@ export interface ErpNextItem extends ErpNextDocument {
   image?: string;
   stock_uom: string;
   disabled?: 0 | 1;
+  is_stock_item?: 0 | 1;
   is_sales_item?: 0 | 1;
   has_variants?: 0 | 1;
   standard_rate?: number;

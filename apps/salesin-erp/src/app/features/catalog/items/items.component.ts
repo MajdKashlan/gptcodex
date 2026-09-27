@@ -8,7 +8,7 @@ import { ErpNextAuthService } from '../../../core/auth/erpnext-auth.service';
 import { ErpNextItem } from '../../../models/item.models';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { PageTopbarAction, PageTopbarComponent } from '../../../shared/components/page-topbar/page-topbar.component';
-import { ItemSearchMode, ItemsService } from './items.service';
+import { ErpNextItemDetails, ItemSearchMode, ItemStockLevel, ItemsService } from './items.service';
 
 @Component({
   selector: 'app-items',
@@ -35,11 +35,25 @@ export class ItemsComponent implements OnInit {
   protected readonly selectedCategory = signal<string | null>(null);
   protected readonly searchMode = signal<ItemSearchMode>('either');
   protected readonly selectedNames = signal<Set<string>>(new Set());
+  protected readonly selectedItem = computed(() => {
+    const [selectedName] = this.selectedNames();
+    return this.selectedNames().size === 1
+      ? this.items().find((item) => item.name === selectedName) ?? null
+      : null;
+  });
   protected readonly logoutConfirmationOpen = signal(false);
   protected readonly logoutLoading = signal(false);
   protected readonly newItemOpen = signal(false);
   protected readonly newItemTab = signal<'profile' | 'stock' | 'images'>('profile');
   protected readonly savingItem = signal(false);
+  protected readonly editItemOpen = signal(false);
+  protected readonly editItemTab = signal<'profile' | 'stock' | 'images'>('profile');
+  protected readonly loadingEdit = signal(false);
+  protected readonly savingEdit = signal(false);
+  protected readonly editError = signal<string | null>(null);
+  protected readonly editItemDetail = signal<ErpNextItemDetails | null>(null);
+  protected readonly stockLevels = signal<ItemStockLevel[]>([]);
+  protected readonly deleteConfirmationOpen = signal(false);
   protected readonly createError = signal<string | null>(null);
   protected readonly createNotice = signal<string | null>(null);
   protected readonly searchText = new FormControl('', { nonNullable: true });
@@ -56,6 +70,15 @@ export class ItemsComponent implements OnInit {
     isStockItem: [true],
     imageUrl: [''],
   });
+  protected readonly editItemForm = this.formBuilder.nonNullable.group({
+    itemName: ['', Validators.required],
+    itemGroup: ['', Validators.required],
+    stockUom: ['', Validators.required],
+    barcode: [''],
+    isStockItem: [true],
+    imageUrl: [''],
+  });
+  protected readonly editUoms = this.formBuilder.array([this.createUomRow()]);
   protected readonly allSelected = computed(() =>
     this.items().length > 0 && this.items().every((item) => this.selectedNames().has(item.name)),
   );
@@ -140,6 +163,141 @@ export class ItemsComponent implements OnInit {
           }
         },
         error: (error: unknown) => this.createError.set(this.createItemError(error)),
+      });
+  }
+
+  protected openEditItem(item = this.selectedItem()): void {
+    if (!item) {
+      return;
+    }
+
+    this.selectedNames.set(new Set([item.name]));
+    this.loadingEdit.set(true);
+    this.editError.set(null);
+    forkJoin({
+      detail: this.itemsService.loadItem(item.name),
+      stockLevels: this.itemsService.loadStockLevels(item.item_code),
+    })
+      .pipe(finalize(() => this.loadingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ detail, stockLevels }) => {
+          this.editItemDetail.set(detail);
+          this.stockLevels.set(stockLevels);
+          this.editItemForm.reset({
+            itemName: detail.item_name,
+            itemGroup: detail.item_group ?? '',
+            stockUom: detail.stock_uom,
+            barcode: detail.barcodes?.[0]?.barcode ?? '',
+            isStockItem: detail.is_stock_item !== 0,
+            imageUrl: detail.image ?? '',
+          });
+          this.editUoms.clear();
+          for (const unit of detail.uoms ?? []) {
+            if (unit.uom !== detail.stock_uom) {
+              this.editUoms.push(this.createUomRow(unit.uom, unit.conversion_factor));
+            }
+          }
+          this.editItemTab.set('profile');
+          this.editItemOpen.set(true);
+        },
+        error: (error: unknown) => this.editError.set(this.createItemError(error)),
+      });
+  }
+
+  protected closeEditItem(): void {
+    if (!this.savingEdit()) {
+      this.editItemOpen.set(false);
+    }
+  }
+
+  protected updateItem(): void {
+    const item = this.selectedItem();
+    if (!item || this.editItemForm.invalid) {
+      this.editItemForm.markAllAsTouched();
+      return;
+    }
+
+    this.savingEdit.set(true);
+    this.editError.set(null);
+    const formValue = this.editItemForm.getRawValue();
+    const uoms = this.editUoms.getRawValue().map((unit) => ({
+      uom: unit.uom,
+      conversion_factor: unit.conversionFactor,
+    }));
+    this.itemsService.update(item.name, { ...formValue, uoms })
+      .pipe(finalize(() => this.savingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.editItemOpen.set(false);
+          this.loadItems();
+        },
+        error: (error: unknown) => this.editError.set(this.createItemError(error)),
+      });
+  }
+
+  protected setEditItemTab(tab: 'profile' | 'stock' | 'images'): void {
+    this.editItemTab.set(tab);
+  }
+
+  protected addSalesUom(): void {
+    this.editUoms.push(this.createUomRow());
+  }
+
+  protected removeSalesUom(index: number): void {
+    this.editUoms.removeAt(index);
+  }
+
+  protected confirmDeleteItem(): void {
+    this.deleteConfirmationOpen.set(true);
+  }
+
+  protected cancelDeleteItem(): void {
+    if (!this.savingEdit()) {
+      this.deleteConfirmationOpen.set(false);
+    }
+  }
+
+  protected deleteSelectedItem(): void {
+    const item = this.editItemDetail();
+    if (!item) {
+      return;
+    }
+
+    this.savingEdit.set(true);
+    this.editError.set(null);
+    this.itemsService.delete(item.name)
+      .pipe(finalize(() => this.savingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deleteConfirmationOpen.set(false);
+          this.editItemOpen.set(false);
+          this.selectedNames.set(new Set());
+          this.loadItems();
+        },
+        error: (error: unknown) => {
+          this.deleteConfirmationOpen.set(false);
+          this.editError.set(this.createItemError(error));
+        },
+      });
+  }
+
+  protected duplicateItem(): void {
+    const item = this.editItemDetail();
+    if (!item) {
+      return;
+    }
+
+    this.savingEdit.set(true);
+    this.editError.set(null);
+    this.itemsService.duplicate(item)
+      .pipe(finalize(() => this.savingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.editItemOpen.set(false);
+          this.selectedNames.set(new Set());
+          this.loadItems();
+        },
+        error: (error: unknown) => this.editError.set(this.createItemError(error)),
       });
   }
 
@@ -255,10 +413,17 @@ export class ItemsComponent implements OnInit {
           }
         }
       } catch {
-        return 'ERPNext could not create this item. Check the required fields and your permissions.';
+        return 'ERPNext could not complete this item operation. Check the item fields and your permissions.';
       }
     }
-    return details.error?.message || 'ERPNext could not create this item. Check the required fields and your permissions.';
+    return details.error?.message || 'ERPNext could not complete this item operation. Check the item fields and your permissions.';
+  }
+
+  private createUomRow(uom = '', conversionFactor = 1) {
+    return this.formBuilder.nonNullable.group({
+      uom: [uom, Validators.required],
+      conversionFactor: [conversionFactor, [Validators.required, Validators.min(0.000001)]],
+    });
   }
 
   private startIdleLogoutTimer(): void {

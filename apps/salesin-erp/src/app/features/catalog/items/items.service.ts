@@ -28,6 +28,26 @@ export interface NewItemDetails {
   priceList: string;
 }
 
+export interface EditItemDetails {
+  itemName: string;
+  itemGroup: string;
+  stockUom: string;
+  uoms: Array<{ uom: string; conversion_factor: number }>;
+  barcode: string;
+  isStockItem: boolean;
+  imageUrl: string;
+}
+
+export interface ItemStockLevel {
+  warehouse: string;
+  actual_qty: number;
+}
+
+export interface ErpNextItemDetails extends ErpNextItem {
+  uoms?: Array<{ uom: string; conversion_factor: number }>;
+  barcodes?: Array<{ barcode: string }>;
+}
+
 interface CreatedItemResponse {
   data: ErpNextItem;
 }
@@ -75,6 +95,7 @@ export class ItemsService {
       'item_group',
       'image',
       'stock_uom',
+      'is_stock_item',
       'modified',
     ];
     let params = new HttpParams()
@@ -150,5 +171,74 @@ export class ItemsService {
             );
         }),
       );
+  }
+
+  update(itemName: string, details: EditItemDetails): Observable<ErpNextItem> {
+    return this.http
+      .put<{ data: ErpNextItem }>(
+        this.auth.apiUrl('/api/resource/Item/' + encodeURIComponent(itemName)),
+        {
+          item_name: details.itemName.trim(),
+          item_group: details.itemGroup,
+          stock_uom: details.stockUom,
+          is_stock_item: details.isStockItem ? 1 : 0,
+          uoms: details.uoms.filter((unit) => unit.uom !== details.stockUom),
+          barcodes: details.barcode.trim() ? [{ barcode: details.barcode.trim() }] : [],
+          image: details.imageUrl.trim() || null,
+        },
+        { withCredentials: true },
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  loadItem(itemName: string): Observable<ErpNextItemDetails> {
+    return this.http
+      .get<{ data: ErpNextItemDetails }>(
+        this.auth.apiUrl('/api/resource/Item/' + encodeURIComponent(itemName)),
+        { withCredentials: true },
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  loadStockLevels(itemCode: string): Observable<ItemStockLevel[]> {
+    const params = new HttpParams()
+      .set('fields', JSON.stringify(['warehouse', 'actual_qty']))
+      .set('filters', JSON.stringify([['Bin', 'item_code', '=', itemCode]]))
+      .set('limit_page_length', '500')
+      .set('order_by', 'warehouse asc');
+
+    return this.http
+      .get<ErpNextListResponse<ItemStockLevel>>(this.auth.apiUrl('/api/resource/Bin'), {
+        params,
+        withCredentials: true,
+        context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
+      })
+      .pipe(
+        map((response) => response.data ?? []),
+        catchError(() => of([])),
+      );
+  }
+
+  delete(itemName: string): Observable<void> {
+    return this.http
+      .delete(this.auth.apiUrl('/api/resource/Item/' + encodeURIComponent(itemName)), {
+        withCredentials: true,
+      })
+      .pipe(map(() => undefined));
+  }
+
+  duplicate(item: ErpNextItemDetails): Observable<ErpNextItem> {
+    return this.http
+      .post<{ data: ErpNextItem }>(this.auth.apiUrl('/api/resource/Item'), {
+        item_name: item.item_name + ' (Copy)',
+        item_group: item.item_group,
+        stock_uom: item.stock_uom,
+        is_stock_item: item.is_stock_item ?? 1,
+        is_sales_item: item.is_sales_item ?? 1,
+        image: item.image || undefined,
+        uoms: item.uoms ?? [],
+        barcodes: [],
+      }, { withCredentials: true })
+      .pipe(map((response) => response.data));
   }
 }
