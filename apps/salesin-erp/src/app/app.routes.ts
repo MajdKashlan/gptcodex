@@ -13,6 +13,11 @@ export const routes: Routes = [
         (module) => module.LoginComponent,
       ),
   },
+    {
+      path: 'items',
+      loadComponent: () =>
+        import('./features/catalog/items/items.component').then((module) => module.ItemsComponent),
+    },
   { path: 'catalog', pathMatch: 'full', redirectTo: '' },
   { path: '**', redirectTo: 'login' },
 ];
