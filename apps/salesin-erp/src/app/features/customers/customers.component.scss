@@ -362,3 +362,235 @@ tbody tr:hover {
     padding: 10px;
   }
 }
+
+.customer-dialog form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.customer-tabs {
+  background: #fff;
+  border-bottom: 1px solid #d7dadd;
+  display: flex;
+  flex: 0 0 48px;
+  overflow-x: auto;
+  padding: 0 14px;
+}
+
+.customer-tabs button {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #008fd0;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 12px;
+  min-width: 112px;
+  padding: 0 14px;
+  text-transform: uppercase;
+}
+
+.customer-tabs button.active {
+  border-bottom-color: #009fc4;
+}
+
+.dialog-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.customer-fields textarea {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #aab0b4;
+  border-radius: 0;
+  color: #252a30;
+  font: inherit;
+  outline: 0;
+  padding: 5px 3px;
+  resize: vertical;
+  width: 100%;
+}
+
+.customer-fields textarea:focus {
+  border-bottom: 2px solid #009fc4;
+}
+
+.check-field {
+  align-items: center;
+  color: #41484e !important;
+  flex-direction: row !important;
+  min-height: 34px;
+}
+
+.check-field input,
+.disabled-toggle input {
+  accent-color: #079fc3;
+  flex: 0 0 16px;
+  height: 16px;
+  min-height: 16px;
+  width: 16px;
+}
+
+.disabled-toggle input {
+  margin: 0;
+}
+
+.settings-sections {
+  display: grid;
+  gap: 24px;
+}
+
+.settings-sections fieldset {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.settings-sections legend {
+  color: #41484e;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.settings-list {
+  border: 1px solid #d9dde1;
+  display: grid;
+  gap: 2px 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 180px;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.settings-list p,
+.tab-hint {
+  color: #69737a;
+  font-size: 12px;
+}
+
+.settings-list p {
+  margin: 4px;
+}
+
+.tab-hint {
+  margin: 20px 0 0;
+}
+
+@media (max-width: 520px) {
+  .settings-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.customer-dialog {
+  display: flex;
+  flex-direction: column;
+  height: min(86dvh, 760px);
+  max-height: min(92dvh, 820px);
+  max-width: 960px;
+  min-height: 520px;
+  overflow: hidden;
+  width: min(96vw, 960px);
+}
+
+.dialog-heading {
+  flex: 0 0 68px;
+  min-height: 68px;
+  padding: 0 24px;
+}
+
+.customer-dialog form {
+  flex: 1 1 auto;
+}
+
+.customer-tabs {
+  flex-basis: 50px;
+}
+
+.customer-tabs button {
+  min-width: 124px;
+}
+
+.dialog-content {
+  padding: 30px;
+  scrollbar-color: #aeb8bd transparent;
+  scrollbar-width: thin;
+}
+
+.customer-fields {
+  align-items: start;
+  gap: 24px 28px;
+}
+
+.profile-fields {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.profile-fields .field-wide {
+  grid-column: span 2;
+}
+
+.customer-fields label {
+  gap: 7px;
+}
+
+.customer-fields textarea {
+  min-height: 74px;
+  padding: 8px 4px;
+}
+
+.check-field {
+  min-height: 38px;
+  padding: 0 8px;
+}
+
+.settings-sections {
+  gap: 22px;
+}
+
+.settings-list {
+  background: #fff;
+  gap: 3px 18px;
+  max-height: 210px;
+  padding: 10px 14px;
+}
+
+.dialog-actions {
+  flex: 0 0 auto;
+  padding: 14px 20px;
+}
+
+.dialog-actions button {
+  min-width: 124px;
+}
+
+@media (max-width: 760px) {
+  .customer-dialog {
+    width: min(100%, 720px);
+  }
+}
+
+@media (max-width: 520px) {
+  .customer-dialog {
+    height: min(90dvh, 760px);
+    min-height: 0;
+    width: 100%;
+  }
+
+  .profile-fields .field-wide {
+    grid-column: 1 / -1;
+  }
+
+  .dialog-content {
+    padding: 22px 18px;
+  }
+
+  .dialog-actions button {
+    flex: 1;
+    min-width: 0;
+  }
+}
