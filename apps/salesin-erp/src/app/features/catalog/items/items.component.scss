@@ -454,6 +454,7 @@ tbody tr.row-selected {
 .profile-fields label span,
 .stock-fields h3 span {
   color: #ed4946;
+  align-items:end;
 }
 
 .new-item-dialog form {
@@ -480,6 +481,7 @@ tbody tr.row-selected {
   display: grid;
   gap: 28px 24px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items:end;
 }
 
 .profile-fields label,
@@ -819,6 +821,7 @@ tbody tr.row-selected {
   .profile-fields {
     gap: 20px 14px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items:end;
   }
 
   .profile-fields .field-wide {

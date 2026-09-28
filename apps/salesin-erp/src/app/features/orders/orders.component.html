@@ -1,0 +1,141 @@
+<main class="orders-shell">
+  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+  <section class="orders-page">
+    <app-page-topbar
+      title="Sales"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
+
+    <nav class="order-tabs" aria-label="Sales order status">
+      <button type="button" [class.active]="selectedTab() === 'all'" (click)="setTab('all')">All <span>{{ orders().length }}</span></button>
+      <button type="button" [class.active]="selectedTab() === 'open'" (click)="setTab('open')">Open <span>{{ openOrderCount() }}</span></button>
+      <button type="button" [class.active]="selectedTab() === 'closed'" (click)="setTab('closed')">Closed <span>{{ closedOrderCount() }}</span></button>
+    </nav>
+
+    <section class="order-tools" aria-label="Sales order tools">
+      <form class="order-search" (submit)="$event.preventDefault(); search()">
+        <label for="order-search">Sales Order or Customer
+          <input id="order-search" type="search" [formControl]="searchText" placeholder="Search orders" />
+        </label>
+        <button class="primary-button" type="submit" [disabled]="loading()">Search</button>
+      </form>
+      <div class="tool-actions">
+        <span>{{ visibleOrders().length }} orders</span>
+        <button class="secondary-button icon-action" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh sales orders" title="Refresh sales orders">↻</button>
+        <button class="primary-button" type="button" (click)="openNewOrder()">+ New Sales Order</button>
+      </div>
+    </section>
+
+    @if (loadingOrder()) {
+      <p class="status-message" role="status">Loading sales order…</p>
+    }
+    @if (loading()) {
+      <p class="status-message" role="status">Loading sales orders…</p>
+    } @else if (error(); as message) {
+      <p class="status-message error-message" role="alert">{{ message }}</p>
+    } @else {
+      <div class="orders-table-frame">
+        <table>
+          <thead>
+            <tr>
+              <th>Sale ID</th>
+              <th>Type</th>
+              <th>Created Date</th>
+              <th>Delivery Date</th>
+              <th>Customer</th>
+              <th class="amount-column">Total</th>
+              <th>Status</th>
+              <th>Document</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of visibleOrders(); track order.name) {
+              <tr [class.read-only-row]="order.docstatus !== 0" tabindex="0" (click)="openEditOrder(order)" (keydown.enter)="openEditOrder(order)">
+                <td>{{ order.name }}</td>
+                <td>Sales Order</td>
+                <td>{{ order.transaction_date | date:'short' }}</td>
+                <td>{{ order.delivery_date ? (order.delivery_date | date:'mediumDate') : 'N/A' }}</td>
+                <td class="customer-cell">{{ order.customer_name || order.customer }}</td>
+                <td class="amount-column">{{ formatCurrency(order.grand_total, order.currency) }}</td>
+                <td><span class="order-status" [class.closed-status]="['Closed', 'Completed', 'Cancelled'].includes(order.status ?? '')">{{ order.status || (order.docstatus === 0 ? 'Draft' : 'Submitted') }}</span></td>
+                <td><button class="row-action" type="button" [disabled]="order.docstatus !== 0" (click)="$event.stopPropagation(); openEditOrder(order)" [attr.aria-label]="'Edit ' + order.name">Edit</button></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="empty-state">No sales orders found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (dialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <section class="order-dialog" role="dialog" aria-modal="true" aria-labelledby="order-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">{{ editingOrder() ? 'Draft sales order' : 'Sales' }}</span>
+            <h2 id="order-dialog-title">{{ editingOrder()?.name || 'New Sales Order' }}</h2>
+          </div>
+          <button class="dialog-close" type="button" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
+        </header>
+        <form [formGroup]="orderForm" (ngSubmit)="saveOrder()">
+          <div class="dialog-content">
+            <section class="form-section">
+              <div class="section-heading"><div><span>01</span><h3>Order details</h3></div><p>Customer, company and delivery schedule</p></div>
+              <div class="order-fields">
+                <label class="field-wide">Customer <span>*</span>
+                  <select formControlName="customer" (change)="chooseCustomer($event)"><option value="" disabled>Select customer</option>@for (customer of options().customers; track customer.name) {<option [value]="customer.name">{{ customer.customer_name }} · {{ customer.name }}</option>}</select>
+                </label>
+                <label>Company <span>*</span>
+                  <select formControlName="company"><option value="" disabled>Select company</option>@for (company of options().companies; track company.name) {<option [value]="company.name">{{ company.name }}</option>}</select>
+                </label>
+                <label>Currency <span>*</span><input formControlName="currency" /></label>
+                <label>Order Date <span>*</span><input type="date" formControlName="transaction_date" /></label>
+                <label>Delivery Date <span>*</span><input type="date" formControlName="delivery_date" /></label>
+                <label>Price List <span>*</span>
+                  <select formControlName="selling_price_list"><option value="" disabled>Select price list</option>@for (priceList of options().priceLists; track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+                </label>
+                <label>Warehouse
+                  <select formControlName="set_warehouse"><option value="">Select warehouse</option>@for (warehouse of options().warehouses; track warehouse) {<option [value]="warehouse">{{ warehouse }}</option>}</select>
+                </label>
+              </div>
+            </section>
+
+            <section class="form-section items-section">
+              <div class="section-heading section-heading-action">
+                <div><span>02</span><h3>Items</h3></div>
+                <button class="add-line-button" type="button" (click)="addOrderItem()">+ Add item</button>
+              </div>
+              <div class="line-items">
+                @for (row of orderItems.controls; track $index; let index = $index) {
+                  <div class="line-item" [formGroup]="row">
+                    <label class="product-field">Item <span>*</span>
+                      <select formControlName="item_code" (change)="chooseItem(index, $event)"><option value="" disabled>Select an item</option>@for (item of options().items; track item.item_code) {<option [value]="item.item_code">{{ item.item_name || item.item_code }} · {{ item.item_code }}</option>}</select>
+                    </label>
+                    <label>Qty<input type="number" min="0.000001" step="any" formControlName="qty" /></label>
+                    <label>Rate<input type="number" min="0" step="0.01" formControlName="rate" /></label>
+                    <div class="line-total"><span>Amount</span><strong>{{ formatCurrency(lineAmount(index), orderForm.controls.currency.value || 'USD') }}</strong></div>
+                    <button class="remove-line-button" type="button" [disabled]="orderItems.length === 1" (click)="removeOrderItem(index)" [attr.aria-label]="'Remove item line ' + (index + 1)">×</button>
+                  </div>
+                }
+              </div>
+              <div class="order-total"><span>Order total</span><strong>{{ formatCurrency(orderTotal(), orderForm.controls.currency.value || 'USD') }}</strong></div>
+            </section>
+
+            @if (formError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+          </div>
+          <footer class="dialog-actions">
+            <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">Cancel</button>
+            <button class="primary-button" type="submit" [disabled]="saving() || orderForm.invalid || orderItems.invalid">{{ saving() ? 'Saving…' : editingOrder() ? 'Save Draft' : 'Create Draft' }}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+</main>
