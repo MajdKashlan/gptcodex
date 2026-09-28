@@ -7,6 +7,7 @@
   background: #f0f1f2;
   color: #252a30;
   display: flex;
+  font-size: 14px;
   min-height: 100dvh;
 }
 
@@ -18,89 +19,62 @@
 
 .new-item-button {
   align-items: center;
-  background: #fb403d;
+  background: #079fc3;
   border: 0;
-  border-radius: 50%;
-  box-shadow: 0 2px 5px #888;
+  border-radius: 2px;
   color: #fff;
   cursor: pointer;
-  display: flex;
-  font-size: 28px;
-  height: 46px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  min-height: 36px;
   justify-content: center;
-  position: absolute;
-  right: 24px;
-  top: 51px;
-  width: 46px;
-  z-index: 3;
+  padding: 0 14px;
 }
 
 .new-item-button:hover {
-  background: #e93532;
+  background: #078caf;
 }
 
 .search-panel {
-  align-items: stretch;
+  align-items: end;
   background: #fff;
   border: 1px solid #e0e3e6;
   border-radius: 3px;
   box-shadow: 0 1px 3px #18232b14;
-  display: grid;
-  gap: 28px;
-  grid-template-columns: minmax(220px, 42%) minmax(300px, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  justify-content: space-between;
   margin: 24px;
-  min-height: 160px;
-  padding: 25px 30px;
+  padding: 20px 24px;
 }
 
 .category-picker {
-  border: 1px solid #d9dde1;
   display: flex;
   flex-direction: column;
-  max-height: 160px;
-  overflow: auto;
-}
-
-.category-picker button {
-  background: #fff;
-  border: 0;
-  color: #252a30;
-  cursor: pointer;
-  flex: 0 0 27px;
+  flex: 0 1 220px;
   font-size: 12px;
-  padding: 4px 14px;
-  text-align: left;
-}
-
-.category-picker button:hover {
-  background: #eaf6f8;
-}
-
-.category-picker button.selected {
-  background: #079bc0;
-  color: #fff;
-}
-
-.category-empty {
-  color: #77818a;
-  font-size: 12px;
-  padding: 10px 14px;
+  gap: 6px;
+  min-width: 150px;
 }
 
 .search-controls {
-  align-items: center;
+  align-items: end;
   display: flex;
-  gap: 24px;
-  justify-content: space-between;
+  flex: 1 1 520px;
+  flex-wrap: wrap;
+  gap: 12px 20px;
   min-width: 0;
 }
 
 .search-modes {
   border: 0;
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
   margin: 0;
-  min-width: 210px;
+  min-width: 0;
   padding: 0;
 }
 
@@ -116,7 +90,7 @@
   color: #6c747b;
   display: flex;
   font-size: 12px;
-  gap: 9px;
+  gap: 7px;
   white-space: nowrap;
 }
 
@@ -128,25 +102,33 @@ input[type='checkbox'] {
   width: 15px;
 }
 
-.search-actions {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-}
-
-.search-actions input {
+.category-picker select,
+.search-field input {
+  background: transparent;
   border: 0;
-  border-bottom: 1px solid #cbd1d5;
+  border-bottom: 1px solid #aab0b4;
   border-radius: 0;
+  color: #252a30;
   font: inherit;
-  min-width: 120px;
+  min-height: 34px;
   outline: 0;
-  padding: 8px 4px;
-  width: min(18vw, 210px);
+  padding: 5px 3px;
+  width: 100%;
 }
 
-.search-actions input:focus {
-  border-bottom-color: #079bc0;
+.category-picker select:focus,
+.search-field input:focus {
+  border-bottom: 2px solid #009fc4;
+}
+
+.search-field {
+  color: #008fd0;
+  display: flex;
+  flex: 1 1 180px;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 6px;
+  min-width: 160px;
 }
 
 .search-button {
@@ -154,22 +136,13 @@ input[type='checkbox'] {
   background: #069fc2;
   border: 0;
   border-radius: 2px;
-  box-shadow: 0 2px 4px #112b3433;
   color: #fff;
   cursor: pointer;
-  display: flex;
-  font-size: 12px;
-  gap: 12px;
+  display: inline-flex;
+  font: inherit;
   justify-content: center;
-  min-height: 38px;
-  min-width: 116px;
-  padding: 0 15px;
-  text-transform: uppercase;
-}
-
-.search-button span:last-child {
-  font-size: 20px;
-  line-height: 1;
+  min-height: 36px;
+  padding: 0 14px;
 }
 
 .list-toolbar {
@@ -234,7 +207,7 @@ input[type='checkbox'] {
 
 table {
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
   min-width: 880px;
   width: 100%;
 }
@@ -247,6 +220,7 @@ thead {
 }
 
 th {
+  color: #41484e;
   font-size: 12px;
   font-weight: 600;
   height: 48px;
@@ -256,11 +230,12 @@ th {
 
 td,
 th {
-  padding: 7px 11px;
+  border-bottom: 1px solid #e7e9eb;
+  padding: 8px 12px;
 }
 
 tbody tr {
-  height: 48px;
+  cursor: pointer;
 }
 
 .item-row {
@@ -278,7 +253,7 @@ tbody tr:nth-child(odd) {
 
 tbody tr:hover,
 tbody tr.row-selected {
-  background: #e4f4f6;
+  background: #e8f5f7;
 }
 
 .check-column {
@@ -428,10 +403,10 @@ tbody tr.row-selected {
   display: flex;
   flex-direction: column;
   max-height: min(92dvh, 760px);
-  max-width: 960px;
-  min-height: 560px;
+  max-width: 760px;
+  min-height: 0;
   overflow: hidden;
-  width: min(96vw, 960px);
+  width: min(96vw, 760px);
 }
 
 .new-item-heading {
@@ -440,8 +415,8 @@ tbody tr.row-selected {
   border-bottom: 4px solid #078caf;
   color: #fff;
   display: flex;
-  flex: 0 0 66px;
-  padding: 0 18px;
+  flex: 0 0 64px;
+  padding: 0 20px;
 }
 
 .new-item-heading h2 {
@@ -492,7 +467,7 @@ tbody tr.row-selected {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding: 30px 24px;
+  padding: 28px 24px;
 }
 
 .item-identifier {
@@ -759,8 +734,6 @@ tbody tr.row-selected {
 
 @media (max-width: 900px) {
   .search-panel {
-    gap: 18px;
-    grid-template-columns: minmax(180px, 34%) minmax(0, 1fr);
     margin: 16px;
     padding: 18px;
   }
@@ -777,47 +750,39 @@ tbody tr.row-selected {
   }
 
   .search-controls {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .search-actions {
-    width: 100%;
-  }
-
-  .search-actions input {
-    flex: 1;
-    width: auto;
+    flex-basis: 100%;
   }
 }
 
 @media (max-width: 650px) {
-  .new-item-button {
-    right: 13px;
-    top: 43px;
-  }
-
   .search-panel {
-    grid-template-columns: 1fr;
+    align-items: stretch;
+    flex-direction: column;
     margin: 12px;
     padding: 14px;
   }
 
-  .category-picker {
-    max-height: 110px;
+  .category-picker,
+  .search-controls {
+    flex-basis: auto;
+    width: 100%;
   }
 
   .search-controls {
-    align-items: stretch;
-  }
-
-  .search-actions {
-    align-items: stretch;
+    align-items: flex-start;
     flex-direction: column;
   }
 
+  .search-modes {
+    display: grid;
+    gap: 8px;
+  }
+
   .search-button {
+    width: 100%;
+  }
+
+  .new-item-button {
     width: 100%;
   }
 
@@ -832,7 +797,8 @@ tbody tr.row-selected {
   }
 
   .new-item-dialog {
-    min-height: min(580px, 90dvh);
+    max-height: 90dvh;
+    min-height: 0;
     width: 96vw;
   }
 

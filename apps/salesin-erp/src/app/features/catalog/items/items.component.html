@@ -8,35 +8,33 @@
       [actions]="topbarActions"
       (actionSelected)="handleTopbarAction($event)"
     />
-    <button class="new-item-button" type="button" aria-label="Create new item" title="Create new item" (click)="openNewItem()">+</button>
-
     @if (createNotice(); as notice) {
       <p class="state-message notice-message" role="status">{{ notice }}</p>
     }
 
     <section class="search-panel" aria-label="Search items">
-      <div class="category-picker" aria-label="Item categories">
-        <button type="button" [class.selected]="selectedCategory() === null" (click)="chooseCategory(null)">All Categories</button>
+      <label class="category-picker">Item Group
+        <select [value]="selectedCategory() ?? ''" (change)="chooseCategoryFromEvent($event)">
+          <option value="">All Categories</option>
         @for (category of categories(); track category) {
-          <button type="button" [class.selected]="selectedCategory() === category" (click)="chooseCategory(category)">{{ category }}</button>
+            <option [value]="category">{{ category }}</option>
         }
-        @empty {
-          <span class="category-empty">No categories found</span>
-        }
-      </div>
+        </select>
+      </label>
 
       <form class="search-controls" (submit)="$event.preventDefault(); search()">
         <fieldset class="search-modes">
-          <legend>Search by</legend>
+          <legend>Search mode</legend>
           <label><input type="radio" name="searchMode" [checked]="searchMode() === 'name'" (change)="setSearchMode('name')" /> Search on Name</label>
           <label><input type="radio" name="searchMode" [checked]="searchMode() === 'code'" (change)="setSearchMode('code')" /> Search on Code</label>
           <label><input type="radio" name="searchMode" [checked]="searchMode() === 'either'" (change)="setSearchMode('either')" /> Search on Name or Code</label>
         </fieldset>
-        <div class="search-actions">
+        <label class="search-field">Item name or code
           <input type="search" [formControl]="searchText" placeholder="Search items" aria-label="Search items" />
-          <button class="search-button" type="button" (click)="search()"><span>Search</span><span aria-hidden="true">⌕</span></button>
-        </div>
+        </label>
+        <button class="search-button" type="submit">Search</button>
       </form>
+      <button class="new-item-button" type="button" (click)="openNewItem()">+ New Item</button>
     </section>
 
     <div class="list-toolbar">

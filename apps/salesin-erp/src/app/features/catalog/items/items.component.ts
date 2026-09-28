@@ -111,6 +111,11 @@ export class ItemsComponent implements OnInit {
     this.loadItems();
   }
 
+  protected chooseCategoryFromEvent(event: Event): void {
+    const category = (event.target as HTMLSelectElement).value;
+    this.chooseCategory(category || null);
+  }
+
   protected refresh(): void {
     this.loadCatalog();
   }

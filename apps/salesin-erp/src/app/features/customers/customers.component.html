@@ -1,0 +1,111 @@
+<main class="customers-shell">
+  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+  <section class="customers-page">
+    <app-page-topbar
+      title="Customers"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
+
+    <section class="customer-tools" aria-label="Customer tools">
+      <form class="customer-search" (submit)="$event.preventDefault(); search()">
+        <label for="customer-search">Customer ID or name</label>
+        <input id="customer-search" type="search" [formControl]="searchText" placeholder="Search customers" />
+        <button class="primary-button" type="submit" [disabled]="loading()">Search</button>
+      </form>
+      <div class="tool-actions">
+        <span>{{ customers().length }} customers</span>
+        <button class="secondary-button" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh customers" title="Refresh customers">↻</button>
+        <button class="primary-button new-customer-button" type="button" (click)="openNewCustomer()">+ New Customer</button>
+      </div>
+    </section>
+
+    @if (loadingCustomer()) {
+      <p class="status-message" role="status">Loading customer…</p>
+    }
+    @if (loading()) {
+      <p class="status-message" role="status">Loading customers…</p>
+    } @else if (error(); as message) {
+      <p class="status-message error-message" role="alert">{{ message }}</p>
+    } @else {
+      <div class="customer-table-frame">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer ID</th>
+              <th>Customer</th>
+              <th>Type</th>
+              <th>Customer Group</th>
+              <th>Territory</th>
+              <th>Currency</th>
+              <th>Status</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (customer of customers(); track customer.name) {
+              <tr tabindex="0" (click)="openEditCustomer(customer)" (keydown.enter)="openEditCustomer(customer)">
+                <td>{{ customer.name }}</td>
+                <td class="customer-name">{{ customer.customer_name }}</td>
+                <td>{{ customer.customer_type || 'Company' }}</td>
+                <td>{{ customer.customer_group || 'N/A' }}</td>
+                <td>{{ customer.territory || 'N/A' }}</td>
+                <td>{{ customer.default_currency || 'N/A' }}</td>
+                <td><span class="status" [class.disabled-status]="customer.disabled === 1">{{ customer.disabled === 1 ? 'Disabled' : 'Active' }}</span></td>
+                <td><button class="row-edit-button" type="button" (click)="$event.stopPropagation(); openEditCustomer(customer)">Edit</button></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="empty-state">No customers found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (dialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <section class="customer-dialog" role="dialog" aria-modal="true" aria-labelledby="customer-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <h2 id="customer-dialog-title">{{ editingCustomer() ? 'Edit customer' : 'New customer' }}</h2>
+          <button type="button" class="dialog-close" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
+        </header>
+        <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()">
+          <div class="dialog-content">
+            <div class="customer-fields">
+              <label class="field-wide">Customer Name <span>*</span><input formControlName="customer_name" autocomplete="organization" /></label>
+              @if (editingCustomer()) {
+                <label class="field-wide">Customer ID<input [value]="editingCustomer()?.name" readonly /></label>
+              }
+              <label>Customer Type <span>*</span>
+                <select formControlName="customer_type"><option value="" disabled>Select type</option>@for (type of customerTypes; track type) {<option [value]="type">{{ type }}</option>}</select>
+              </label>
+              <label>Customer Group <span>*</span>
+                <select formControlName="customer_group"><option value="" disabled>Select group</option>@for (group of options().groups; track group) {<option [value]="group">{{ group }}</option>}</select>
+              </label>
+              <label>Territory <span>*</span>
+                <select formControlName="territory"><option value="" disabled>Select territory</option>@for (territory of options().territories; track territory) {<option [value]="territory">{{ territory }}</option>}</select>
+              </label>
+              <label>Default Currency
+                <select formControlName="default_currency"><option value="">Use company default</option>@for (currency of options().currencies; track currency) {<option [value]="currency">{{ currency }}</option>}</select>
+              </label>
+              <label class="field-wide">Default Selling Price List
+                <select formControlName="default_price_list"><option value="">No default price list</option>@for (priceList of options().priceLists; track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+              </label>
+              <label class="disabled-toggle"><input type="checkbox" formControlName="disabled" /><span>Disable this customer</span></label>
+            </div>
+            @if (formError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+          </div>
+          <footer class="dialog-actions">
+            <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">Cancel</button>
+            <button class="primary-button" type="submit" [disabled]="saving() || customerForm.invalid">{{ saving() ? 'Saving…' : editingCustomer() ? 'Save Changes' : 'Create Customer' }}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+</main>

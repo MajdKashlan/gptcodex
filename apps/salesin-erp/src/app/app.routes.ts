@@ -13,11 +13,16 @@ export const routes: Routes = [
         (module) => module.LoginComponent,
       ),
   },
-    {
-      path: 'items',
-      loadComponent: () =>
-        import('./features/catalog/items/items.component').then((module) => module.ItemsComponent),
-    },
+  {
+    path: 'items',
+    loadComponent: () =>
+      import('./features/catalog/items/items.component').then((module) => module.ItemsComponent),
+  },
+  {
+    path: 'customers',
+    loadComponent: () =>
+      import('./features/customers/customers.component').then((module) => module.CustomersComponent),
+  },
   { path: 'catalog', pathMatch: 'full', redirectTo: '' },
   { path: '**', redirectTo: 'login' },
 ];
