@@ -125,7 +125,9 @@
                 <label>Sales Units <span>*</span><input type="number" min="1" formControlName="salesUnits" /></label>
                 <label>Unit of Sale <span>*</span><select formControlName="salesUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
                 <label>Sales Unit Price <span>*</span><input type="number" min="0.01" step="0.01" formControlName="price" /></label>
-                <label class="field-wide">Price List <span>*</span><input formControlName="priceList" /></label>
+                <label class="field-wide">Price List <span>*</span>
+                  <select formControlName="priceList"><option value="" disabled>Select price list</option>@for (priceList of priceLists(); track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+                </label>
               </div>
             } @else if (newItemTab() === 'stock') {
               <section class="stock-fields">
@@ -161,7 +163,7 @@
   @if (editItemOpen()) {
     <div class="dialog-backdrop" (click)="closeEditItem()">
       <section class="new-item-dialog edit-item-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-item-title" (click)="$event.stopPropagation()">
-        <header class="new-item-heading"><h2 id="edit-item-title">{{ editItemDetail()?.item_name }}</h2></header>
+        <header class="new-item-heading"><h2 id="edit-item-title">{{ duplicatingItem() ? 'Duplicate item' : editItemDetail()?.item_name }}</h2></header>
         <nav class="item-tabs" aria-label="Edit item sections">
           <button type="button" [class.active]="editItemTab() === 'profile'" (click)="setEditItemTab('profile')">Profile <span>*</span></button>
           <button type="button" [class.active]="editItemTab() === 'stock'" (click)="setEditItemTab('stock')">Stock <span>*</span></button>
@@ -175,8 +177,12 @@
                 <label class="field-wide">Item Group <span>*</span>
                   <select formControlName="itemGroup"><option value="" disabled>Select category</option>@for (category of categories(); track category) {<option [value]="category">{{ category }}</option>}</select>
                 </label>
-                <label>Code<input [value]="editItemDetail()?.item_code" disabled /></label>
+                <label>Code <span>*</span><input formControlName="itemCode" autocomplete="off" [readonly]="!duplicatingItem()" /></label>
                 <label>Bar Code<input formControlName="barcode" autocomplete="off" /></label>
+                <label>Sales Unit Price<input type="number" min="0" step="0.01" formControlName="price" /></label>
+                <label>Price List <span>*</span>
+                  <select formControlName="priceList"><option value="" disabled>Select price list</option>@for (priceList of priceLists(); track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+                </label>
                 <label class="field-wide">Stock Unit of Measure <span>*</span>
                   <select formControlName="stockUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select>
                 </label>
@@ -220,12 +226,14 @@
           </div>
           <footer class="new-item-actions">
             <div class="edit-danger-actions">
-              <button type="button" class="delete-button" [disabled]="savingEdit()" (click)="confirmDeleteItem()">Delete</button>
-              <button type="button" class="duplicate-button" [disabled]="savingEdit()" (click)="duplicateItem()">Duplicate</button>
+              @if (!duplicatingItem()) {
+                <button type="button" class="delete-button" [disabled]="savingEdit()" (click)="confirmDeleteItem()">Delete</button>
+                <button type="button" class="duplicate-button" [disabled]="savingEdit()" (click)="duplicateItem()">Duplicate</button>
+              }
             </div>
             <div class="edit-save-actions">
               <button type="button" class="close-button" [disabled]="savingEdit()" (click)="closeEditItem()">Close</button>
-              <button type="submit" class="save-button" [disabled]="savingEdit() || editItemForm.invalid || editUoms.invalid">{{ savingEdit() ? 'Saving…' : 'Confirm' }}</button>
+              <button type="submit" class="save-button" [disabled]="savingEdit() || editItemForm.invalid || editUoms.invalid">{{ savingEdit() ? 'Saving…' : duplicatingItem() ? 'Create Copy' : 'Confirm' }}</button>
             </div>
           </footer>
         </form>

@@ -32,6 +32,7 @@ export class ItemsComponent implements OnInit {
   protected readonly items = signal<ErpNextItem[]>([]);
   protected readonly categories = signal<string[]>([]);
   protected readonly uoms = signal<string[]>([]);
+  protected readonly priceLists = signal<string[]>([]);
   protected readonly selectedCategory = signal<string | null>(null);
   protected readonly searchMode = signal<ItemSearchMode>('either');
   protected readonly selectedNames = signal<Set<string>>(new Set());
@@ -47,6 +48,7 @@ export class ItemsComponent implements OnInit {
   protected readonly newItemTab = signal<'profile' | 'stock' | 'images'>('profile');
   protected readonly savingItem = signal(false);
   protected readonly editItemOpen = signal(false);
+  protected readonly duplicatingItem = signal(false);
   protected readonly editItemTab = signal<'profile' | 'stock' | 'images'>('profile');
   protected readonly loadingEdit = signal(false);
   protected readonly savingEdit = signal(false);
@@ -71,9 +73,12 @@ export class ItemsComponent implements OnInit {
     imageUrl: [''],
   });
   protected readonly editItemForm = this.formBuilder.nonNullable.group({
+    itemCode: ['', Validators.required],
     itemName: ['', Validators.required],
     itemGroup: ['', Validators.required],
     stockUom: ['', Validators.required],
+    price: [0, Validators.min(0)],
+    priceList: ['Standard Selling', Validators.required],
     barcode: [''],
     isStockItem: [true],
     imageUrl: [''],
@@ -123,7 +128,7 @@ export class ItemsComponent implements OnInit {
       salesUom: this.uoms()[0] ?? '',
       salesUnits: 1,
       price: 0,
-      priceList: 'Standard Selling',
+      priceList: this.defaultPriceList(),
       isStockItem: true,
       imageUrl: '',
     });
@@ -172,21 +177,26 @@ export class ItemsComponent implements OnInit {
     }
 
     this.selectedNames.set(new Set([item.name]));
+    this.duplicatingItem.set(false);
     this.loadingEdit.set(true);
     this.editError.set(null);
     forkJoin({
       detail: this.itemsService.loadItem(item.name),
       stockLevels: this.itemsService.loadStockLevels(item.item_code),
+      sellingPrice: this.itemsService.loadSellingPrice(item.item_code),
     })
       .pipe(finalize(() => this.loadingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ detail, stockLevels }) => {
+        next: ({ detail, stockLevels, sellingPrice }) => {
           this.editItemDetail.set(detail);
           this.stockLevels.set(stockLevels);
           this.editItemForm.reset({
+            itemCode: detail.item_code,
             itemName: detail.item_name,
             itemGroup: detail.item_group ?? '',
             stockUom: detail.stock_uom,
+            price: sellingPrice.price,
+            priceList: sellingPrice.priceList,
             barcode: detail.barcodes?.[0]?.barcode ?? '',
             isStockItem: detail.is_stock_item !== 0,
             imageUrl: detail.image ?? '',
@@ -207,11 +217,12 @@ export class ItemsComponent implements OnInit {
   protected closeEditItem(): void {
     if (!this.savingEdit()) {
       this.editItemOpen.set(false);
+      this.duplicatingItem.set(false);
     }
   }
 
   protected updateItem(): void {
-    const item = this.selectedItem();
+    const item = this.editItemDetail();
     if (!item || this.editItemForm.invalid) {
       this.editItemForm.markAllAsTouched();
       return;
@@ -224,11 +235,16 @@ export class ItemsComponent implements OnInit {
       uom: unit.uom,
       conversion_factor: unit.conversionFactor,
     }));
-    this.itemsService.update(item.name, { ...formValue, uoms })
+    const details = { ...formValue, uoms };
+    const save$ = this.duplicatingItem()
+      ? this.itemsService.duplicate(item, details)
+      : this.itemsService.update(item.name, details);
+    save$
       .pipe(finalize(() => this.savingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.editItemOpen.set(false);
+          this.duplicatingItem.set(false);
           this.loadItems();
         },
         error: (error: unknown) => this.editError.set(this.createItemError(error)),
@@ -289,13 +305,30 @@ export class ItemsComponent implements OnInit {
 
     this.savingEdit.set(true);
     this.editError.set(null);
-    this.itemsService.duplicate(item)
+    this.itemsService.nextDuplicateCode(item.item_code)
       .pipe(finalize(() => this.savingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
-          this.editItemOpen.set(false);
-          this.selectedNames.set(new Set());
-          this.loadItems();
+        next: (itemCode) => {
+          const currentDetails = this.editItemForm.getRawValue();
+          this.editItemForm.reset({
+            itemCode,
+            itemName: currentDetails.itemName + ' (Copy)',
+            itemGroup: currentDetails.itemGroup,
+            stockUom: currentDetails.stockUom,
+            price: currentDetails.price,
+            priceList: currentDetails.priceList,
+            barcode: '',
+            isStockItem: currentDetails.isStockItem,
+            imageUrl: currentDetails.imageUrl,
+          });
+          this.editUoms.clear();
+          for (const unit of item.uoms ?? []) {
+            if (unit.uom !== item.stock_uom) {
+              this.editUoms.push(this.createUomRow(unit.uom, unit.conversion_factor));
+            }
+          }
+          this.duplicatingItem.set(true);
+          this.editItemTab.set('profile');
         },
         error: (error: unknown) => this.editError.set(this.createItemError(error)),
       });
@@ -359,13 +392,18 @@ export class ItemsComponent implements OnInit {
     forkJoin({
       categories: this.itemsService.loadCategories(),
       uoms: this.itemsService.loadUoms(),
+      priceLists: this.itemsService.loadPriceLists(),
       items: this.itemsService.search(this.currentSearch()),
     })
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ categories, uoms, items }) => {
+        next: ({ categories, uoms, priceLists, items }) => {
           this.categories.set(categories);
           this.uoms.set(uoms);
+          this.priceLists.set(priceLists);
+          if (priceLists.length && !priceLists.includes(this.newItemForm.controls.priceList.value)) {
+            this.newItemForm.controls.priceList.setValue(this.defaultPriceList());
+          }
           if (!this.newItemForm.controls.stockUom.value && uoms.length) {
             this.newItemForm.controls.stockUom.setValue(uoms[0]);
             this.newItemForm.controls.salesUom.setValue(uoms[0]);
@@ -398,6 +436,11 @@ export class ItemsComponent implements OnInit {
       query: this.searchText.value,
       mode: this.searchMode(),
     };
+  }
+
+  private defaultPriceList(): string {
+    const priceLists = this.priceLists();
+    return priceLists.includes('Standard Selling') ? 'Standard Selling' : priceLists[0] ?? 'Standard Selling';
   }
 
   private createItemError(error: unknown): string {

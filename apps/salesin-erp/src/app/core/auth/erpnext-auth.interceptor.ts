@@ -31,7 +31,7 @@ export const erpNextAuthInterceptor: HttpInterceptorFn = (request, next) => {
     catchError((error: unknown) => {
       if (
         error instanceof HttpErrorResponse &&
-        (error.status === 401 || error.status === 403) &&
+        error.status === 401 &&
         !request.context.get(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER)
       ) {
         auth.handleUnauthorized();
