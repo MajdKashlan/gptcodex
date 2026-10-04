@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
@@ -7,6 +7,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   imports: [RouterLink, RouterLinkActive],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss',
+  host: { '[class.sales-expanded]': 'salesExpanded()' },
 })
 export class SidebarComponent {
   readonly userName = input.required<string>();
@@ -14,4 +15,5 @@ export class SidebarComponent {
   readonly signOut = output<void>();
 
   protected readonly userInitial = computed(() => this.userName().slice(0, 1).toUpperCase());
+  protected readonly salesExpanded = signal(false);
 }

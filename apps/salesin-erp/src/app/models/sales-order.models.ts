@@ -8,6 +8,7 @@ export interface SalesOrderItem {
   description?: string;
   image?: string;
   warehouse?: string;
+  delivery_date?: string;
   uom?: string;
   conversion_factor?: number;
   qty: number;
@@ -47,4 +48,5 @@ export interface ErpNextSalesOrder extends ErpNextDocument {
   grand_total?: number;
   rounded_total?: number;
   status?: string;
+  order_type?: string;
 }

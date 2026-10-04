@@ -9,42 +9,71 @@
       (actionSelected)="handleTopbarAction($event)"
     />
 
-    <nav class="order-tabs" aria-label="Sales order status">
+    <div class="sales-list-heading"><h1>{{ salesViewTitle() }}</h1><span>{{ orders().length }} records</span></div>
+    <nav class="order-tabs" aria-label="Sales status filter">
       <button type="button" [class.active]="selectedTab() === 'all'" (click)="setTab('all')">All <span>{{ orders().length }}</span></button>
       <button type="button" [class.active]="selectedTab() === 'open'" (click)="setTab('open')">Open <span>{{ openOrderCount() }}</span></button>
       <button type="button" [class.active]="selectedTab() === 'closed'" (click)="setTab('closed')">Closed <span>{{ closedOrderCount() }}</span></button>
     </nav>
 
     <section class="order-tools" aria-label="Sales order tools">
-      <form class="order-search" (submit)="$event.preventDefault(); search()">
-        <label for="order-search">Sales Order or Customer
-          <input id="order-search" type="search" [formControl]="searchText" placeholder="Search orders" />
-        </label>
-        <button class="primary-button" type="submit" [disabled]="loading()">Search</button>
-      </form>
+      @if (!hideSearch()) {
+        <form class="order-search" (submit)="$event.preventDefault(); search()">
+          <label for="order-search">Sales Order or Customer
+            <input id="order-search" type="search" [formControl]="searchText" placeholder="Search orders" />
+          </label>
+          <button class="primary-button" type="submit" [disabled]="loading()">Search</button>
+        </form>
+      }
       <div class="tool-actions">
-        <span>{{ visibleOrders().length }} orders</span>
-        <button class="secondary-button icon-action" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh sales orders" title="Refresh sales orders">↻</button>
-        <button class="primary-button" type="button" (click)="openNewOrder()">+ New Sales Order</button>
+        <span class="selection-count">{{ selectedOrders().length }} selected / {{ visibleOrders().length }} orders</span>
+        <button class="tool-button select-tool" type="button" (click)="toggleAllVisible(!allVisibleSelected())" [attr.aria-label]="allVisibleSelected() ? 'Uncheck all visible sales orders' : 'Check all visible sales orders'" [title]="allVisibleSelected() ? 'Uncheck all' : 'Check all'">{{ allVisibleSelected() ? '☑' : '□' }}</button>
+        <button class="tool-button status-tool" type="button" [disabled]="!canChangeSelectedStatus()" (click)="openToolDialog('status')" aria-label="Change sales status" title="Submit or cancel selected documents of one type">⇄</button>
+        <button class="tool-button type-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="openToolDialog('type')" aria-label="Change sales type" title="Change sales type">▤</button>
+        <button class="tool-button assigned-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="openToolDialog('assigned')" aria-label="Change assigned user" title="Change assigned user">♙</button>
+        <button class="tool-button payment-tool" type="button" [disabled]="!canPaySelected()" (click)="openToolDialog('payment')" aria-label="Add payment" title="Add payment">$</button>
+        <button class="tool-button excel-tool" type="button" [disabled]="!selectedOrders().length" (click)="exportExcel()" aria-label="Download Excel-compatible file" title="Download Excel-compatible CSV">X</button>
+        <button class="tool-button pdf-tool" type="button" [disabled]="!selectedOrders().length" (click)="downloadPdf()" aria-label="Download PDF" title="Print or save selected orders as PDF">▣</button>
+        <button class="tool-button email-tool" type="button" [disabled]="!selectedOrders().length" (click)="emailSelected()" aria-label="Email selected orders" title="Email selected orders">✉</button>
+        <button class="tool-button duplicate-tool" type="button" [disabled]="!canManageSalesOrders() || selectedSalesOrders().length !== 1" (click)="duplicateSelected()" aria-label="Duplicate selected order" title="Duplicate selected order">⧉</button>
+        <button class="tool-button delete-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="deleteSelected()" aria-label="Delete selected draft orders" title="Delete selected draft orders">⌫</button>
+        <button class="tool-button settings-tool" type="button" (click)="openToolDialog('settings')" aria-label="Page settings" title="Page settings">⚙</button>
+        <button class="tool-button refresh-tool" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh sales orders" title="Refresh sales orders">↻</button>
+        <div class="add-document-menu">
+          <button class="primary-button add-document-trigger" type="button" [attr.aria-expanded]="addMenuOpen()" (click)="addMenuOpen.set(!addMenuOpen())">+ Add New</button>
+          @if (addMenuOpen()) {
+            <div class="add-document-options" role="menu" aria-label="Create sales document">
+              <button type="button" role="menuitem" (click)="openNewDocument('Credit Note')">Credit Note</button>
+              <button type="button" role="menuitem" (click)="openNewDocument('Invoice')">Invoice</button>
+              <button type="button" role="menuitem" (click)="openNewDocument('Order')">Order</button>
+              <button type="button" role="menuitem" (click)="openNewDocument('Quote')">Quote</button>
+            </div>
+          }
+        </div>
       </div>
     </section>
+
+    @if (toolMessage(); as message) {
+      <p class="tool-message" role="status">{{ message }}</p>
+    }
 
     @if (loadingOrder()) {
       <p class="status-message" role="status">Loading sales order…</p>
     }
     @if (loading()) {
-      <p class="status-message" role="status">Loading sales orders…</p>
+            <p class="status-message" role="status">Loading {{ salesViewTitle().toLowerCase() }}…</p>
     } @else if (error(); as message) {
       <p class="status-message error-message" role="alert">{{ message }}</p>
     } @else {
-      <div class="orders-table-frame">
+      <div class="orders-table-frame" [class.compact-rows]="compactRows()">
         <table>
           <thead>
             <tr>
-              <th>Sale ID</th>
+              <th class="checkbox-column"><input type="checkbox" [checked]="allVisibleSelected()" (change)="toggleAllVisible($any($event.target).checked)" aria-label="Select all visible sales orders" /></th>
+              <th>Document ID</th>
               <th>Type</th>
-              <th>Created Date</th>
-              <th>Delivery Date</th>
+              <th>Document Date</th>
+              <th>Due / Delivery</th>
               <th>Customer</th>
               <th class="amount-column">Total</th>
               <th>Status</th>
@@ -53,18 +82,33 @@
           </thead>
           <tbody>
             @for (order of visibleOrders(); track order.name) {
-              <tr [class.read-only-row]="order.docstatus !== 0" tabindex="0" (click)="openEditOrder(order)" (keydown.enter)="openEditOrder(order)">
+              <tr [class.read-only-row]="order.docstatus !== 0" [attr.tabindex]="order.docstatus === 0 ? 0 : null" (click)="openEditOrder(order)" (keydown.enter)="openEditOrder(order)">
+                <td class="checkbox-column" (click)="$event.stopPropagation()"><input type="checkbox" [checked]="selectedOrderNames().has(salesRowKey(order))" (change)="toggleOrder(order, $any($event.target).checked)" [attr.aria-label]="'Select ' + order.name" /></td>
                 <td>{{ order.name }}</td>
-                <td>Sales Order</td>
+                <td>{{ order.doctype === 'Sales Order' ? order.order_type || order.documentType : order.documentType }}</td>
                 <td>{{ order.transaction_date | date:'short' }}</td>
                 <td>{{ order.delivery_date ? (order.delivery_date | date:'mediumDate') : 'N/A' }}</td>
                 <td class="customer-cell">{{ order.customer_name || order.customer }}</td>
                 <td class="amount-column">{{ formatCurrency(order.grand_total, order.currency) }}</td>
                 <td><span class="order-status" [class.closed-status]="['Closed', 'Completed', 'Cancelled'].includes(order.status ?? '')">{{ order.status || (order.docstatus === 0 ? 'Draft' : 'Submitted') }}</span></td>
-                <td><button class="row-action" type="button" [disabled]="order.docstatus !== 0" (click)="$event.stopPropagation(); openEditOrder(order)" [attr.aria-label]="'Edit ' + order.name">Edit</button></td>
+                <td class="table-actions">
+                  <button class="row-action" type="button" [disabled]="order.docstatus !== 0" (click)="$event.stopPropagation(); openEditOrder(order)" [attr.aria-label]="'Edit ' + order.name" [attr.title]="order.docstatus === 0 ? 'Edit draft ' + order.documentType : editAvailability(order)">Edit</button>
+                  @if (canMakeOrder(order)) {
+                    <button class="row-action" type="button" [disabled]="workflowBusyName() === salesRowKey(order)" (click)="$event.stopPropagation(); makeOrderFromQuote(order)">To Order</button>
+                  }
+                  @if (canMakeInvoice(order)) {
+                    <button class="row-action" type="button" [disabled]="workflowBusyName() === salesRowKey(order)" (click)="$event.stopPropagation(); makeInvoiceFromOrder(order)">To Invoice</button>
+                  }
+                  @if (canReceivePayment(order)) {
+                    <button class="row-action" type="button" (click)="$event.stopPropagation(); openPaymentFor(order)">Payment</button>
+                  }
+                  @if (canMakeCreditNote(order)) {
+                    <button class="row-action" type="button" [disabled]="workflowBusyName() === salesRowKey(order)" (click)="$event.stopPropagation(); makeCreditNoteFromInvoice(order)">Credit Note</button>
+                  }
+                </td>
               </tr>
             } @empty {
-              <tr><td colspan="8" class="empty-state">No sales orders found.</td></tr>
+              <tr><td colspan="9" class="empty-state">No {{ salesViewTitle().toLowerCase() }} found.</td></tr>
             }
           </tbody>
         </table>
@@ -77,8 +121,8 @@
       <section class="order-dialog" role="dialog" aria-modal="true" aria-labelledby="order-dialog-title" (click)="$event.stopPropagation()">
         <header class="dialog-heading">
           <div>
-            <span class="dialog-kicker">{{ editingOrder() ? 'Draft sales order' : 'Sales' }}</span>
-            <h2 id="order-dialog-title">{{ editingOrder()?.name || 'New Sales Order' }}</h2>
+            <span class="dialog-kicker">{{ editingOrder() ? 'Draft ' + editingOrder()?.documentType : createType() }}</span>
+            <h2 id="order-dialog-title">{{ editingOrder()?.name || 'New ' + createType() }}</h2>
           </div>
           <button class="dialog-close" type="button" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
         </header>
@@ -94,14 +138,20 @@
                   <select formControlName="company"><option value="" disabled>Select company</option>@for (company of options().companies; track company.name) {<option [value]="company.name">{{ company.name }}</option>}</select>
                 </label>
                 <label>Currency <span>*</span><input formControlName="currency" /></label>
-                <label>Order Date <span>*</span><input type="date" formControlName="transaction_date" /></label>
-                <label>Delivery Date <span>*</span><input type="date" formControlName="delivery_date" /></label>
+                <label>{{ createType() === 'Invoice' || createType() === 'Credit Note' ? 'Invoice Date' : createType() === 'Quote' ? 'Quote Date' : 'Order Date' }} <span>*</span><input type="date" formControlName="transaction_date" /></label>
+                <label>{{ createType() === 'Invoice' || createType() === 'Credit Note' ? 'Payment Due' : createType() === 'Quote' ? 'Valid Until' : 'Delivery Date' }} <span>*</span><input type="date" formControlName="delivery_date" /></label>
                 <label>Price List <span>*</span>
                   <select formControlName="selling_price_list"><option value="" disabled>Select price list</option>@for (priceList of options().priceLists; track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
                 </label>
                 <label>Warehouse
                   <select formControlName="set_warehouse"><option value="">Select warehouse</option>@for (warehouse of options().warehouses; track warehouse) {<option [value]="warehouse">{{ warehouse }}</option>}</select>
                 </label>
+              </div>
+              <div class="document-extra-fields order-fields">
+                <label>Purchase Order No.<input formControlName="po_no" placeholder="Purchase order reference" /></label>
+                <label>Assigned To<input formControlName="assigned_to" placeholder="ERPNext user email" /></label>
+                <label>Payment Terms<input formControlName="payment_terms_template" placeholder="Payment terms template" /></label>
+                <label class="notes-field">Notes<textarea formControlName="remarks" rows="3" placeholder="Notes for this document"></textarea></label>
               </div>
             </section>
 
@@ -132,9 +182,61 @@
           </div>
           <footer class="dialog-actions">
             <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">Cancel</button>
-            <button class="primary-button" type="submit" [disabled]="saving() || orderForm.invalid || orderItems.invalid">{{ saving() ? 'Saving…' : editingOrder() ? 'Save Draft' : 'Create Draft' }}</button>
+            <button class="primary-button" type="submit" [disabled]="saving() || orderForm.invalid || orderItems.invalid">{{ saving() ? 'Saving…' : editingOrder() ? 'Save Draft' : 'Save ' + createType() }}</button>
           </footer>
         </form>
+      </section>
+    </div>
+  }
+
+  @if (toolDialog()) {
+    <div class="dialog-backdrop" (click)="closeToolDialog()">
+      <section class="tool-dialog" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">{{ selectedOrders().length }} selected</span>
+            <h2>{{ toolDialog() === 'status' ? 'Change Sales Status' : toolDialog() === 'type' ? 'Change Sales Type' : toolDialog() === 'assigned' ? 'Assigned User' : toolDialog() === 'payment' ? 'Add Payment' : 'Page Settings' }}</h2>
+          </div>
+          <button class="dialog-close" type="button" [disabled]="toolBusy()" (click)="closeToolDialog()" aria-label="Close">×</button>
+        </header>
+        <div class="tool-dialog-content">
+          @if (toolDialog() !== 'settings') {
+            <p class="warning-note">Please make changes carefully. Saved changes may not be undoable.</p>
+          }
+          @if (toolDialog() === 'status') {
+            <label class="tool-field">Status action
+              <select [formControl]="toolValue"><option value="submit">Submit draft orders</option><option value="cancel">Cancel submitted orders</option></select>
+            </label>
+            <p class="field-hint">ERPNext updates status when a document is submitted or cancelled. Select documents of one type at a time.</p>
+          } @else if (toolDialog() === 'type') {
+            <label class="tool-field">Sales type
+              <select [formControl]="toolValue"><option value="Sales">Sales</option><option value="Maintenance">Maintenance</option><option value="Shopping Cart">Shopping Cart</option></select>
+            </label>
+          } @else if (toolDialog() === 'assigned') {
+            <label class="tool-field">ERPNext user email or ID
+              <input type="text" [formControl]="toolValue" placeholder="user@example.com" />
+            </label>
+          } @else if (toolDialog() === 'payment') {
+            <label class="tool-field">Payment amount
+              <input type="number" min="0.01" step="0.01" [formControl]="toolValue" />
+            </label>
+            <p class="field-hint">A draft Payment Entry will be created against {{ selectedOrders()[0]?.documentType }} {{ selectedOrders()[0]?.name }}.</p>
+          } @else {
+            <label class="setting-option"><input type="checkbox" [checked]="hideSearch()" (change)="hideSearch.set($any($event.target).checked)" /> Hide sales search bar</label>
+            <label class="setting-option"><input type="checkbox" [checked]="compactRows()" (change)="compactRows.set($any($event.target).checked)" /> Use compact table rows</label>
+            <label class="tool-field page-size-field">Page size
+              <select [formControl]="pageSizeControl"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option><option value="200">200</option></select>
+            </label>
+            <p class="field-hint">Page settings are saved in this browser only.</p>
+          }
+          @if (toolError(); as message) {
+            <p class="form-error" role="alert">{{ message }}</p>
+          }
+        </div>
+        <footer class="dialog-actions">
+          <button class="secondary-button" type="button" [disabled]="toolBusy()" (click)="closeToolDialog()">Close</button>
+          <button class="primary-button" type="button" [disabled]="toolBusy()" (click)="runToolAction()">{{ toolBusy() ? 'Saving…' : toolDialog() === 'settings' ? 'Save settings' : 'Confirm' }}</button>
+        </footer>
       </section>
     </div>
   }

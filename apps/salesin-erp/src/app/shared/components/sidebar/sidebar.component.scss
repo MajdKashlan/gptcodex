@@ -51,6 +51,69 @@ nav a {
   text-decoration: none;
 }
 
+.sales-nav-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #f0f2f7;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 22px;
+  gap: 10px;
+  min-height: 39px;
+  padding: 7px 13px;
+  text-align: left;
+  width: 100%;
+}
+
+.sales-nav-toggle:hover {
+  background: #46536b;
+}
+
+.sales-nav-toggle > span:nth-child(2) {
+  font-size: 13px;
+}
+
+.nav-chevron {
+  font-size: 20px;
+  margin-left: auto;
+  transform: rotate(0);
+  transition: transform 120ms ease;
+}
+
+.nav-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.sales-subnav {
+  display: grid;
+  padding: 0 0 6px;
+}
+
+.sales-subnav a {
+  align-items: center;
+  color: #f0f2f7;
+  display: flex;
+  font-size: 13px;
+  min-height: 48px;
+  padding: 8px 10px 8px 47px;
+  position: relative;
+  text-decoration: none;
+}
+
+.sales-subnav a::before {
+  content: '›';
+  font-size: 20px;
+  left: 18px;
+  position: absolute;
+}
+
+.sales-subnav a:hover,
+.sales-subnav a.active {
+  background: #46536b;
+}
+
 nav a span {
   font-size: 13px;
 }
@@ -129,6 +192,26 @@ nav .active {
   nav a {
     justify-content: center;
     padding: 8px;
+  }
+
+  .sales-nav-toggle {
+    justify-content: center;
+    padding: 8px;
+  }
+
+  :host(.sales-expanded) {
+    flex-basis: 210px;
+  }
+
+  :host(.sales-expanded) .sales-nav-toggle {
+    justify-content: flex-start;
+    padding: 7px 13px;
+  }
+
+  :host(:not(.sales-expanded)) .sales-nav-toggle > span:nth-child(2),
+  :host(:not(.sales-expanded)) .sales-nav-toggle .nav-chevron,
+  :host(:not(.sales-expanded)) .sales-subnav {
+    display: none;
   }
 
   nav a span {

@@ -5,7 +5,19 @@
     <a href="#">▦ <span>Appointments</span></a>
     <a routerLink="/customers" routerLinkActive="active">♟ <span>Customers</span></a>
     <a routerLink="/items" routerLinkActive="active">▤ <span>Items</span></a>
-    <a routerLink="/sales" routerLinkActive="active">🛒 <span>Sales</span></a>
+    <button class="sales-nav-toggle" type="button" [attr.aria-expanded]="salesExpanded()" (click)="salesExpanded.set(!salesExpanded())">
+      <span class="nav-icon" aria-hidden="true">🛒</span><span>Sales</span><span class="nav-chevron" [class.expanded]="salesExpanded()" aria-hidden="true">›</span>
+    </button>
+    @if (salesExpanded()) {
+      <div class="sales-subnav" aria-label="Sales pages">
+        <a routerLink="/sales" [queryParams]="{ view: 'all' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">All Sales</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'credit-notes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Credit Notes</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'customer-orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Customer Orders</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'invoices' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Invoices</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Orders</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'quotes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Quotes</a>
+      </div>
+    }
     <a href="#">▧ <span>Reports</span></a>
     <a href="#">▣ <span>B2B eCommerce</span></a>
     <a href="#">⚙ <span>Administration</span></a>
