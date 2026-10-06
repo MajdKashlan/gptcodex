@@ -4,7 +4,7 @@
     <button
       class="user-menu-trigger"
       type="button"
-      aria-label="Open user menu"
+      [attr.aria-label]="i18n.t('shell.openUserMenu')"
       [attr.aria-expanded]="menuOpen()"
       (click)="toggleMenu()"
     >

@@ -1,5 +1,6 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { LanguageService } from '../../../core/i18n/language.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -14,6 +15,12 @@ export class SidebarComponent {
   readonly userImage = input<string | null>(null);
   readonly signOut = output<void>();
 
+  protected readonly i18n = inject(LanguageService);
   protected readonly userInitial = computed(() => this.userName().slice(0, 1).toUpperCase());
   protected readonly salesExpanded = signal(false);
+
+  /** Label of the language toggle: shows the language you would switch to. */
+  protected readonly languageToggleLabel = computed(() =>
+    this.i18n.current() === 'ar' ? 'EN' : 'ع',
+  );
 }

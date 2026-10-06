@@ -1,22 +1,22 @@
 :root {
     color-scheme: light;
-    --app-bg: #f2f6f5;
+    --app-bg: #F2F2F2;
     --surface: #fff;
     --surface-raised: #fff;
-    --surface-soft: #f7faf9;
-    --text-primary: #172c30;
-    --text-secondary: #607276;
-    --text-muted: #7b8b8e;
-    --border: #dce6e4;
-    --border-strong: #c9d7d5;
-    --brand: #087f83;
-    --brand-strong: #06676c;
-    --brand-soft: #e2f2f0;
-    --positive: #2e8b63;
-    --warning: #a66a1f;
-    --danger: #b6423a;
-    --sidebar-bg: #24363c;
-    --sidebar-hover: #30474d;
+    --surface-soft: #F7FBFD;
+    --text-primary: #1C1C1C;
+    --text-secondary: #666666;
+    --text-muted: #8A8A8A;
+    --border: #E0E0E0;
+    --border-strong: #BDBDBD;
+    --brand: #019ED1;
+    --brand-strong: #0180AA;
+    --brand-soft: #EBFAFC;
+    --positive: #4CAF50;
+    --warning: #FF9800;
+    --danger: #F44336;
+    --sidebar-bg: #3C4251;
+    --sidebar-hover: #474E60;
     --shadow-panel: 0 1px 3px rgb(26 53 56 / 7%), 0 8px 24px rgb(26 53 56 / 3%);
     --radius-control: 6px;
     --radius-panel: 8px;
@@ -72,11 +72,11 @@ button:active:not(:disabled) {
 }
 
 ::selection {
-    background: #c9e8e4;
+    background: #B3E5F5;
     color: #17383a;
 }
 
-body :is(.shell, .customers-shell, .items-shell, .orders-shell) {
+body :is(.shell, .customers-shell, .items-shell, .orders-shell, .stock-shell) {
     background: var(--app-bg);
     color: var(--text-primary);
     position: relative;
@@ -89,14 +89,14 @@ body :is(.customer-tools, .order-tools, .search-panel) {
     box-shadow: var(--shadow-panel);
 }
 
-body :is(.customer-table-frame, .orders-table-frame, .table-frame) {
+body :is(.customer-table-frame, .orders-table-frame, .table-frame, .stock-table-frame) {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-panel);
 }
 
-body :is(.widget, .customer-dialog, .order-dialog, .tool-dialog, .new-item-dialog, .confirm-dialog, .password-dialog) {
+body :is(.widget, .customer-dialog, .order-dialog, .tool-dialog, .new-item-dialog, .stock-dialog, .confirm-dialog, .password-dialog) {
     background: var(--surface-raised);
     border: 1px solid var(--border);
     border-radius: var(--radius-panel);
@@ -137,7 +137,7 @@ body :is(.primary-button, .new-item-button, .search-button, .save-button, .confi
 }
 
 body :is(.secondary-button, .close-button, .dialog-cancel) {
-    background: #edf3f2;
+    background: #F2F2F2;
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
     color: var(--text-primary);
@@ -145,7 +145,7 @@ body :is(.secondary-button, .close-button, .dialog-cancel) {
 }
 
 body :is(.secondary-button, .close-button, .dialog-cancel):hover:not(:disabled) {
-    background: #e3ecea;
+    background: #E0E0E0;
     box-shadow: 0 3px 8px rgb(26 53 56 / 8%);
 }
 
@@ -175,21 +175,21 @@ body :is(.order-search label, .order-fields label, .customer-search label, .cust
     color: var(--text-secondary);
 }
 
-body :is(.orders-table-frame, .customer-table-frame, .table-frame, .widget:has(table)) {
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame, .widget:has(table)) {
     overflow-x: auto;
-    scrollbar-color: #bdceca transparent;
+    scrollbar-color: #BDBDBD transparent;
 }
 
-body :is(.orders-table-frame, .customer-table-frame, .table-frame) table {
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) table {
     border-collapse: separate;
     border-spacing: 0;
 }
 
-body :is(.orders-table-frame, .customer-table-frame, .table-frame) thead {
-    background: #f6f9f8;
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) thead {
+    background: #F6F6F6;
 }
 
-body :is(.orders-table-frame, .customer-table-frame, .table-frame) th {
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) th {
     color: var(--text-secondary);
     font-size: 11px;
     font-weight: 650;
@@ -197,17 +197,17 @@ body :is(.orders-table-frame, .customer-table-frame, .table-frame) th {
     text-transform: uppercase;
 }
 
-body :is(.orders-table-frame, .customer-table-frame, .table-frame) td,
-body :is(.orders-table-frame, .customer-table-frame, .table-frame) th {
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) td,
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) th {
     border-bottom-color: var(--border);
 }
 
-body :is(.orders-table-frame, .customer-table-frame, .table-frame) tbody tr:nth-child(odd) {
-    background: #f8faf9;
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) tbody tr:nth-child(odd) {
+    background: #FAFAFA;
 }
 
-body :is(.orders-table-frame, .customer-table-frame, .table-frame) tbody tr:hover {
-    background: #eaf5f3;
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) tbody tr:hover {
+    background: #E8F7FC;
 }
 
 body :is(.order-status, .status) {
@@ -219,12 +219,12 @@ body :is(.order-status, .status) {
 }
 
 body .order-status.closed-status {
-    background: #edf1f0;
+    background: #EFEFEF;
     color: var(--text-secondary);
 }
 
 body .status.disabled-status {
-    background: #fae8e6;
+    background: #FDECEA;
     color: var(--danger);
 }
 
@@ -302,7 +302,7 @@ body .trend-heading b {
 }
 
 body .trend-ranges {
-    background: #edf3f2;
+    background: #F2F2F2;
     border: 1px solid var(--border);
     border-radius: 7px;
     display: flex;
@@ -397,7 +397,7 @@ body .trend-point {
 body .trend-point:hover,
 body .trend-point:focus,
 body .trend-point.selected {
-    fill: #d17a3b;
+    fill: #FF9800;
     outline: none;
     r: 7;
 }
@@ -509,4 +509,146 @@ body .trend-empty {
         scroll-behavior: auto !important;
         transition-duration: .01ms !important;
     }
+}
+/* --- Notifications (see core/http/notification.service.ts) --------------- */
+.app-notification-success,
+.app-notification-info,
+.app-notification-error {
+    --mdc-snackbar-container-color: var(--sidebar-bg);
+    --mdc-snackbar-supporting-text-color: #ffffff;
+    --mat-snack-bar-button-color: #ffffff;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+}
+
+.app-notification-error {
+    --mdc-snackbar-container-color: var(--danger);
+}
+
+.app-notification-success {
+    --mdc-snackbar-container-color: var(--positive);
+}
+/* --- Internationalisation (see core/i18n/language.service.ts) ------------- */
+/* Arabic needs a font with real Arabic coverage; Aptos/Segoe UI fall back badly. */
+html[lang='ar'] body {
+    font-family: 'Segoe UI', 'Noto Naskh Arabic', 'Noto Sans Arabic', 'Traditional Arabic', 'Arial', sans-serif;
+}
+
+.language-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.language-toggle:hover {
+    background: var(--sidebar-hover);
+}
+/* --- Shared form-dialog scaffolding ------------------------------------- */
+/* Promoted from the per-feature copies (.dialog-content, .field-wide,
+   .form-error, .visually-hidden, .tool-actions) so that new modules do not
+   duplicate them. Component-scoped rules still win for existing features. */
+.dialog-fields {
+    align-items: end;
+    display: grid;
+    gap: 24px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog-fields label {
+    color: var(--brand);
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    gap: 7px;
+    min-width: 0;
+}
+
+.dialog-fields label span {
+    color: var(--danger);
+}
+
+.dialog-fields input,
+.dialog-fields select,
+.dialog-fields textarea {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--border-strong);
+    border-radius: 0;
+    color: var(--text-primary);
+    font: inherit;
+    min-height: 34px;
+    outline: 0;
+    padding: 5px 3px;
+    width: 100%;
+}
+
+.dialog-fields textarea {
+    min-height: 74px;
+    padding: 8px 4px;
+    resize: vertical;
+}
+
+.dialog-fields input:focus,
+.dialog-fields select:focus,
+.dialog-fields textarea:focus {
+    border-bottom: 2px solid var(--brand);
+}
+
+.dialog-fields .field-wide {
+    grid-column: 1 / -1;
+}
+
+.dialog-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 30px;
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-width: thin;
+}
+
+.dialog-close {
+    background: transparent;
+    border: 0;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 24px;
+}
+
+.form-error,
+.error-message {
+    color: var(--danger);
+}
+
+.form-error {
+    margin: 20px 0 0;
+}
+
+.visually-hidden {
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+.tool-actions {
+    align-items: center;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 12px;
+    white-space: nowrap;
 }

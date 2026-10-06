@@ -1,0 +1,172 @@
+<main class="payments-shell">
+  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+  <section class="payments-page">
+    <app-page-topbar
+      [title]="i18n.t('payments.title')"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
+
+    <nav class="payments-tabs" [attr.aria-label]="i18n.t('payments.title')">
+      <button type="button" [class.active]="tab() === 'outstanding'" (click)="selectTab('outstanding')">{{ i18n.t('payments.outstanding') }}</button>
+      <button type="button" [class.active]="tab() === 'aging'" (click)="selectTab('aging')">{{ i18n.t('payments.aging') }}</button>
+    </nav>
+
+    <div class="payments-tools">
+      <label class="payments-search">{{ i18n.t('payments.search') }}
+        <input [formControl]="searchText" (keydown.enter)="applySearch()" />
+      </label>
+      <button class="secondary-button" type="button" (click)="applySearch()">{{ i18n.t('stock.searchAction') }}</button>
+      <div class="summary-bar">
+        <span>{{ i18n.t('payments.totalOutstanding') }}</span>
+        <strong>{{ totalOutstanding() | number:'1.2-2' }}</strong>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="status-message" role="status">{{ i18n.t('payments.loading') }}</p>
+    } @else if (error(); as message) {
+      <p class="status-message error-message" role="alert">{{ message }}</p>
+    } @else {
+      @if (truncated()) {
+        <p class="status-message" role="status">
+          {{ i18n.t('payments.truncated').split('{count}').join('500') }}
+        </p>
+      }
+
+      @if (tab() === 'outstanding') {
+        <div class="payments-table-frame">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ i18n.t('payments.invoice') }}</th>
+                <th>{{ i18n.t('payments.customer') }}</th>
+                <th>{{ i18n.t('common.date') }}</th>
+                <th>{{ i18n.t('payments.dueDate') }}</th>
+                <th>{{ i18n.t('payments.daysOverdue') }}</th>
+                <th>{{ i18n.t('payments.invoiceTotal') }}</th>
+                <th>{{ i18n.t('payments.outstandingAmount') }}</th>
+                <th><span class="visually-hidden">{{ i18n.t('common.actions') }}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (invoice of invoices(); track invoice.name) {
+                <tr>
+                  <td class="cell-strong">{{ invoice.name }}</td>
+                  <td>{{ invoice.customer_name || invoice.customer }}</td>
+                  <td>{{ invoice.posting_date | date:'shortDate' }}</td>
+                  <td>{{ invoice.due_date ? (invoice.due_date | date:'shortDate') : '—' }}</td>
+                  <td>
+                    @if (daysOverdue(invoice) > 0) {
+                      <span class="status overdue-status">{{ daysOverdue(invoice) }}</span>
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td>{{ invoice.grand_total ?? 0 | number:'1.2-2' }}</td>
+                  <td class="cell-strong">{{ invoice.outstanding_amount ?? 0 | number:'1.2-2' }}</td>
+                  <td>
+                    <button class="row-action" type="button" (click)="recordPayment(invoice)">{{ i18n.t('payments.recordPayment') }}</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="8" class="empty-state">{{ i18n.t('payments.noInvoices') }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="payments-table-frame">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ i18n.t('payments.customer') }}</th>
+                <th>{{ i18n.t('payments.current') }}</th>
+                <th>{{ i18n.t('payments.d1_30') }}</th>
+                <th>{{ i18n.t('payments.d31_60') }}</th>
+                <th>{{ i18n.t('payments.d61_90') }}</th>
+                <th>{{ i18n.t('payments.d90plus') }}</th>
+                <th>{{ i18n.t('payments.outstandingAmount') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of agingRows(); track row.customer) {
+                <tr>
+                  <td class="cell-strong">{{ row.customer }}</td>
+                  <td>{{ row.current | number:'1.2-2' }}</td>
+                  <td>{{ row.days1To30 | number:'1.2-2' }}</td>
+                  <td>{{ row.days31To60 | number:'1.2-2' }}</td>
+                  <td>{{ row.days61To90 | number:'1.2-2' }}</td>
+                  <td>{{ row.days90Plus | number:'1.2-2' }}</td>
+                  <td class="cell-strong">{{ row.total | number:'1.2-2' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="empty-state">{{ i18n.t('payments.noInvoices') }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </section>
+
+  @if (dialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <section class="payment-dialog" role="dialog" aria-modal="true" aria-labelledby="payment-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">{{ i18n.t('payments.recordPayment') }}</span>
+            <h2 id="payment-dialog-title">{{ payingInvoice()?.name }}</h2>
+          </div>
+          <button class="dialog-close" type="button" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
+        </header>
+
+        <form [formGroup]="paymentForm" (ngSubmit)="savePayment()">
+          <div class="dialog-content">
+            <p class="payment-summary">
+              {{ payingInvoice()?.customer_name || payingInvoice()?.customer }} ·
+              {{ i18n.t('payments.outstandingAmount') }}:
+              {{ payingInvoice()?.outstanding_amount ?? 0 | number:'1.2-2' }}
+            </p>
+            <div class="dialog-fields">
+              <label>{{ i18n.t('payments.amount') }} <span>*</span>
+                <input type="number" min="0" step="any" formControlName="amount" />
+              </label>
+              <label>{{ i18n.t('payments.postingDate') }} <span>*</span>
+                <input type="date" formControlName="posting_date" />
+              </label>
+              <label>{{ i18n.t('payments.modeOfPayment') }}
+                <select formControlName="mode_of_payment">
+                  <option value="">—</option>
+                  @for (mode of modesOfPayment(); track mode) {
+                    <option [value]="mode">{{ mode }}</option>
+                  }
+                </select>
+              </label>
+              <label>{{ i18n.t('payments.reference') }}
+                <input formControlName="reference_no" />
+              </label>
+              <label class="field-wide check-field">
+                <input type="checkbox" formControlName="submit_now" />
+                {{ i18n.t('payments.submitNow') }}
+              </label>
+            </div>
+
+            @if (formError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+          </div>
+
+          <footer class="dialog-actions">
+            <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">{{ i18n.t('common.cancel') }}</button>
+            <button class="primary-button" type="submit" [disabled]="saving() || paymentForm.invalid">
+              {{ saving() ? i18n.t('payments.saving') : i18n.t('payments.savePayment') }}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+</main>

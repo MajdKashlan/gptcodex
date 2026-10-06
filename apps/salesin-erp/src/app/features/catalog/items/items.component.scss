@@ -4,8 +4,8 @@
 }
 
 .items-shell {
-  background: #f0f1f2;
-  color: #252a30;
+  background: #F2F2F2;
+  color: #1C1C1C;
   display: flex;
   font-size: 14px;
   min-height: 100dvh;
@@ -39,7 +39,7 @@
 .search-panel {
   align-items: end;
   background: #fff;
-  border: 1px solid #e0e3e6;
+  border: 1px solid #E0E0E0;
   border-radius: 3px;
   box-shadow: 0 1px 3px #18232b14;
   display: flex;
@@ -106,9 +106,9 @@ input[type='checkbox'] {
 .search-field input {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid #aab0b4;
+  border-bottom: 1px solid #BDBDBD;
   border-radius: 0;
-  color: #252a30;
+  color: #1C1C1C;
   font: inherit;
   min-height: 34px;
   outline: 0;
@@ -118,11 +118,11 @@ input[type='checkbox'] {
 
 .category-picker select:focus,
 .search-field input:focus {
-  border-bottom: 2px solid #009fc4;
+  border-bottom: 2px solid #019ED1;
 }
 
 .search-field {
-  color: #008fd0;
+  color: #019ED1;
   display: flex;
   flex: 1 1 180px;
   flex-direction: column;
@@ -198,7 +198,7 @@ input[type='checkbox'] {
 
 .table-frame {
   background: #fff;
-  border: 1px solid #e1e4e6;
+  border: 1px solid #E0E0E0;
   border-radius: 3px;
   box-shadow: 0 1px 3px #18232b14;
   margin: 0 24px 24px;
@@ -220,7 +220,7 @@ thead {
 }
 
 th {
-  color: #41484e;
+  color: #424242;
   font-size: 12px;
   font-weight: 600;
   height: 48px;
@@ -310,15 +310,15 @@ tbody tr.row-selected {
 
 .state-message {
   background: #fff;
-  border: 1px solid #e1e4e6;
+  border: 1px solid #E0E0E0;
   border-radius: 3px;
-  color: #69737a;
+  color: #666666;
   margin: 0 24px 24px;
   padding: 24px;
 }
 
 .error-message {
-  color: #b42318;
+  color: #F44336;
 }
 
 .visually-hidden {
@@ -438,7 +438,7 @@ tbody tr.row-selected {
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
-  color: #008fd0;
+  color: #019ED1;
   cursor: pointer;
   font-size: 12px;
   min-width: 112px;
@@ -447,7 +447,7 @@ tbody tr.row-selected {
 }
 
 .item-tabs button.active {
-  border-bottom-color: #009fc4;
+  border-bottom-color: #019ED1;
 }
 
 .item-tabs button span,
@@ -472,7 +472,7 @@ tbody tr.row-selected {
 }
 
 .item-identifier {
-  color: #69737a;
+  color: #666666;
   font-size: 12px;
   margin: 0 0 24px;
 }
@@ -487,7 +487,7 @@ tbody tr.row-selected {
 .profile-fields label,
 .image-fields label,
 .uom-field {
-  color: #008fd0;
+  color: #019ED1;
   display: flex;
   flex-direction: column;
   font-size: 13px;
@@ -504,7 +504,7 @@ tbody tr.row-selected {
 .uom-field input {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid #aab0b4;
+  border-bottom: 1px solid #BDBDBD;
   border-radius: 0;
   color: #24292e;
   font: inherit;
@@ -517,12 +517,12 @@ tbody tr.row-selected {
 .profile-fields select:focus,
 .image-fields input:focus,
 .uom-field input:focus {
-  border-bottom: 2px solid #009fc4;
+  border-bottom: 2px solid #019ED1;
 }
 
 .stock-fields h3 {
   border-bottom: 1px solid #d8dcdf;
-  color: #008fd0;
+  color: #019ED1;
   font-size: 14px;
   font-weight: 400;
   margin: 0 0 15px;
@@ -555,7 +555,7 @@ tbody tr.row-selected {
 .stock-level-header {
   background: #f3f4f5;
   border-bottom: 1px solid #d6dade;
-  color: #008fd0;
+  color: #019ED1;
   font-size: 12px;
 }
 
@@ -564,7 +564,7 @@ tbody tr.row-selected {
 }
 
 .stock-level-row span:last-child {
-  color: #008fd0;
+  color: #019ED1;
 }
 
 .sales-uom-heading {
@@ -581,7 +581,7 @@ tbody tr.row-selected {
 }
 
 .sales-uom-row label {
-  color: #008fd0;
+  color: #019ED1;
   display: flex;
   flex: 1 1 180px;
   flex-direction: column;
@@ -593,7 +593,7 @@ tbody tr.row-selected {
 .sales-uom-row input {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid #aab0b4;
+  border-bottom: 1px solid #BDBDBD;
   border-radius: 0;
   color: #24292e;
   font: inherit;
@@ -604,13 +604,13 @@ tbody tr.row-selected {
 
 .sales-uom-row select:focus,
 .sales-uom-row input:focus {
-  border-bottom: 2px solid #009fc4;
+  border-bottom: 2px solid #019ED1;
 }
 
 .remove-uom-button {
   background: transparent;
   border: 0;
-  color: #b42318;
+  color: #F44336;
   cursor: pointer;
   font-size: 20px;
   height: 32px;
@@ -669,7 +669,7 @@ tbody tr.row-selected {
 }
 
 .create-error {
-  color: #b42318;
+  color: #F44336;
   font-size: 13px;
   margin: 24px 0 0;
 }

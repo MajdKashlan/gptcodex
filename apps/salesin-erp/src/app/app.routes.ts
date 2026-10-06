@@ -28,6 +28,16 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/orders/orders.component').then((module) => module.OrdersComponent),
   },
+  {
+    path: 'stock',
+    loadComponent: () =>
+      import('./features/stock/stock.component').then((module) => module.StockComponent),
+  },
+  {
+    path: 'payments',
+    loadComponent: () =>
+      import('./features/payments/payments.component').then((module) => module.PaymentsComponent),
+  },
   { path: 'catalog', pathMatch: 'full', redirectTo: '' },
   { path: '**', redirectTo: 'login' },
 ];

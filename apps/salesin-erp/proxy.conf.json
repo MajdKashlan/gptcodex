@@ -1,7 +1,31 @@
 {
-  "/api/**": {
+  "/api": {
     "target": "https://erp.hmgtr.com",
     "secure": true,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
+  },
+  "/files": {
+    "target": "https://erp.hmgtr.com",
+    "secure": true,
+    "changeOrigin": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
+  },
+  "/private": {
+    "target": "https://erp.hmgtr.com",
+    "secure": true,
+    "changeOrigin": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
+  },
+  "/socket.io": {
+    "target": "https://erp.hmgtr.com",
+    "secure": true,
+    "changeOrigin": true,
+    "ws": true,
+    "cookieDomainRewrite": "",
+    "logLevel": "debug"
   }
 }

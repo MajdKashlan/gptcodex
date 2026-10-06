@@ -1,0 +1,246 @@
+<main class="stock-shell">
+  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+  <section class="stock-page">
+    <app-page-topbar
+      [title]="i18n.t('stock.title')"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
+
+    <nav class="stock-tabs" [attr.aria-label]="i18n.t('stock.title')">
+      <button type="button" [class.active]="tab() === 'levels'" (click)="selectTab('levels')">{{ i18n.t('stock.levels') }}</button>
+      <button type="button" [class.active]="tab() === 'movements'" (click)="selectTab('movements')">{{ i18n.t('stock.movements') }}</button>
+      <button type="button" [class.active]="tab() === 'entries'" (click)="selectTab('entries')">{{ i18n.t('stock.entries') }}</button>
+    </nav>
+
+    <div class="stock-tools">
+      <div class="stock-filters">
+        <label>{{ i18n.t('stock.warehouse') }}
+          <select [formControl]="warehouseFilter" (change)="applyFilters()">
+            <option value="">{{ i18n.t('stock.allWarehouses') }}</option>
+            @for (warehouse of warehouses(); track warehouse) {
+              <option [value]="warehouse">{{ warehouse }}</option>
+            }
+          </select>
+        </label>
+        @if (tab() !== 'entries') {
+          <label>{{ i18n.t('stock.item') }}
+            <input [formControl]="searchText" [placeholder]="i18n.t('stock.search')" (keydown.enter)="applyFilters()" />
+          </label>
+          <button class="secondary-button" type="button" (click)="applyFilters()">{{ i18n.t('stock.searchAction') }}</button>
+        }
+      </div>
+      <div class="tool-actions">
+        <button class="primary-button" type="button" (click)="openNewEntry()">{{ i18n.t('stock.newEntry') }}</button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <p class="status-message" role="status">{{ i18n.t('stock.loading') }}</p>
+    } @else if (error(); as message) {
+      <p class="status-message error-message" role="alert">{{ message }}</p>
+    } @else if (tab() === 'levels') {
+      <div class="stock-table-frame">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ i18n.t('stock.item') }}</th>
+              <th>{{ i18n.t('stock.warehouse') }}</th>
+              <th>{{ i18n.t('stock.actualQty') }}</th>
+              <th>{{ i18n.t('stock.reservedQty') }}</th>
+              <th>{{ i18n.t('stock.projectedQty') }}</th>
+              <th>{{ i18n.t('stock.valuationRate') }}</th>
+              <th>{{ i18n.t('stock.stockValue') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (level of levels(); track level.name) {
+              <tr>
+                <td class="cell-strong">{{ level.item_code }}</td>
+                <td>{{ level.warehouse }}</td>
+                <td>{{ level.actual_qty ?? 0 | number:'1.0-2' }}</td>
+                <td>{{ level.reserved_qty ?? 0 | number:'1.0-2' }}</td>
+                <td>{{ level.projected_qty ?? 0 | number:'1.0-2' }}</td>
+                <td>{{ level.valuation_rate ?? 0 | number:'1.2-2' }}</td>
+                <td>{{ level.stock_value ?? 0 | number:'1.2-2' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="empty-state">{{ i18n.t('stock.noLevels') }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (tab() === 'movements') {
+      <div class="stock-table-frame">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ i18n.t('common.date') }}</th>
+              <th>{{ i18n.t('stock.item') }}</th>
+              <th>{{ i18n.t('stock.warehouse') }}</th>
+              <th>{{ i18n.t('stock.movementQty') }}</th>
+              <th>{{ i18n.t('stock.qtyAfter') }}</th>
+              <th>{{ i18n.t('stock.voucher') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (movement of movements(); track movement.name) {
+              <tr>
+                <td>{{ movement.posting_date | date:'shortDate' }}</td>
+                <td class="cell-strong">{{ movement.item_code }}</td>
+                <td>{{ movement.warehouse }}</td>
+                <td>{{ movement.actual_qty ?? 0 | number:'1.0-2' }}</td>
+                <td>{{ movement.qty_after_transaction ?? 0 | number:'1.0-2' }}</td>
+                <td>{{ movement.voucher_type }} · {{ movement.voucher_no }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="empty-state">{{ i18n.t('stock.noMovements') }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="stock-table-frame">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ i18n.t('common.date') }}</th>
+              <th>{{ i18n.t('stock.item') }}</th>
+              <th>{{ i18n.t('stock.entryType') }}</th>
+              <th>{{ i18n.t('stock.fromWarehouse') }}</th>
+              <th>{{ i18n.t('stock.toWarehouse') }}</th>
+              <th>{{ i18n.t('stock.stockValue') }}</th>
+              <th>{{ i18n.t('common.status') }}</th>
+              <th><span class="visually-hidden">{{ i18n.t('common.actions') }}</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of entries(); track entry.name) {
+              <tr [class.read-only-row]="entry.docstatus !== 0">
+                <td>{{ entry.posting_date | date:'shortDate' }}</td>
+                <td class="cell-strong">{{ entry.name }}</td>
+                <td>{{ entry.stock_entry_type }}</td>
+                <td>{{ entry.from_warehouse || '—' }}</td>
+                <td>{{ entry.to_warehouse || '—' }}</td>
+                <td>{{ entry.total_outgoing_value ?? entry.total_incoming_value ?? 0 | number:'1.2-2' }}</td>
+                <td>
+                  <span class="status" [class.draft-status]="entry.docstatus === 0" [class.disabled-status]="entry.docstatus === 2">
+                    {{ entryStatus(entry) }}
+                  </span>
+                </td>
+                <td>
+                  @if (entry.docstatus === 0) {
+                    <button class="row-action" type="button" [disabled]="submittingEntry() === entry.name" (click)="submitEntry(entry, $event)">
+                      {{ submittingEntry() === entry.name ? i18n.t('stock.submitting') : i18n.t('stock.submit') }}
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="empty-state">{{ i18n.t('stock.noEntries') }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (dialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <section class="stock-dialog" role="dialog" aria-modal="true" aria-labelledby="stock-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">{{ entryPurpose() || i18n.t('stock.entries') }}</span>
+            <h2 id="stock-dialog-title">{{ i18n.t('stock.newEntry') }}</h2>
+          </div>
+          <button class="dialog-close" type="button" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
+        </header>
+
+        <form [formGroup]="entryForm" (ngSubmit)="saveEntry()">
+          <div class="dialog-content">
+            <div class="dialog-fields">
+              <label>{{ i18n.t('stock.entryType') }} <span>*</span>
+                <select formControlName="stock_entry_type" (change)="chooseEntryType($event)">
+                  <option value="" disabled>—</option>
+                  @for (entryType of options().stockEntryTypes; track entryType.name) {
+                    <option [value]="entryType.name">{{ entryType.name }}</option>
+                  }
+                </select>
+              </label>
+              <label>{{ i18n.t('stock.company') }} <span>*</span>
+                <select formControlName="company">
+                  <option value="" disabled>—</option>
+                  @for (company of options().companies; track company.name) {
+                    <option [value]="company.name">{{ company.name }}</option>
+                  }
+                </select>
+              </label>
+              <label>{{ i18n.t('stock.postingDate') }} <span>*</span>
+                <input type="date" formControlName="posting_date" />
+              </label>
+              @if (needsFromWarehouse()) {
+                <label>{{ i18n.t('stock.fromWarehouse') }} <span>*</span>
+                  <select formControlName="from_warehouse">
+                    <option value="">—</option>
+                    @for (warehouse of warehouses(); track warehouse) {
+                      <option [value]="warehouse">{{ warehouse }}</option>
+                    }
+                  </select>
+                </label>
+              }
+              @if (needsToWarehouse()) {
+                <label>{{ i18n.t('stock.toWarehouse') }} <span>*</span>
+                  <select formControlName="to_warehouse">
+                    <option value="">—</option>
+                    @for (warehouse of warehouses(); track warehouse) {
+                      <option [value]="warehouse">{{ warehouse }}</option>
+                    }
+                  </select>
+                </label>
+              }
+            </div>
+
+            <div class="entry-rows">
+              <div class="entry-rows-heading">
+                <h3>{{ i18n.t('stock.item') }}</h3>
+                <button class="secondary-button" type="button" (click)="addItemRow()">{{ i18n.t('stock.addRow') }}</button>
+              </div>
+              @for (row of entryItems.controls; track $index; let i = $index) {
+                <div class="entry-row" [formGroup]="itemRow(i)">
+                  <label class="field-wide">{{ i18n.t('stock.item') }}
+                    <select formControlName="item_code">
+                      <option value="" disabled>—</option>
+                      @for (item of options().items; track item.name) {
+                        <option [value]="item.name">{{ item.item_name || item.item_code }} · {{ item.stock_uom }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label>{{ i18n.t('stock.quantity') }}
+                    <input type="number" min="0" step="any" formControlName="qty" />
+                  </label>
+                  <label>{{ i18n.t('stock.uom') }}
+                    <input formControlName="uom" />
+                  </label>
+                  <button class="secondary-button" type="button" [disabled]="entryItems.length <= 1" (click)="removeItemRow(i)">{{ i18n.t('stock.removeRow') }}</button>
+                </div>
+              }
+            </div>
+
+            @if (formError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+          </div>
+
+          <footer class="dialog-actions">
+            <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">{{ i18n.t('common.cancel') }}</button>
+            <button class="primary-button" type="submit" [disabled]="saving() || entryForm.invalid">
+              {{ saving() ? i18n.t('stock.saving') : i18n.t('stock.saveDraft') }}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+</main>

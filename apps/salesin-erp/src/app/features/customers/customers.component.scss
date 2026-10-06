@@ -4,8 +4,8 @@
 }
 
 .customers-shell {
-  background: #f0f1f2;
-  color: #252a30;
+  background: #F2F2F2;
+  color: #1C1C1C;
   display: flex;
   font-size: 14px;
   min-height: 100dvh;
@@ -20,7 +20,7 @@
 .customer-tools {
   align-items: end;
   background: #fff;
-  border: 1px solid #e0e3e6;
+  border: 1px solid #E0E0E0;
   box-shadow: 0 1px 3px #18232b14;
   display: flex;
   gap: 24px;
@@ -37,7 +37,7 @@
 }
 
 .customer-search label {
-  color: #008fd0;
+  color: #019ED1;
   display: flex;
   flex-direction: column;
   font-size: 12px;
@@ -50,9 +50,9 @@
 .customer-fields select {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid #aab0b4;
+  border-bottom: 1px solid #BDBDBD;
   border-radius: 0;
-  color: #252a30;
+  color: #1C1C1C;
   font: inherit;
   min-height: 34px;
   outline: 0;
@@ -63,12 +63,12 @@
 .customer-search input:focus,
 .customer-fields input:focus,
 .customer-fields select:focus {
-  border-bottom: 2px solid #009fc4;
+  border-bottom: 2px solid #019ED1;
 }
 
 .tool-actions {
   align-items: center;
-  color: #69737a;
+  color: #666666;
   display: flex;
   gap: 12px;
   white-space: nowrap;
@@ -101,7 +101,7 @@
 
 .row-edit-button {
   background: transparent;
-  color: #008fd0;
+  color: #019ED1;
   min-height: 30px;
 }
 
@@ -112,7 +112,7 @@ button:disabled {
 
 .customer-table-frame {
   background: #fff;
-  border: 1px solid #e1e4e6;
+  border: 1px solid #E0E0E0;
   border-radius: 3px;
   box-shadow: 0 1px 3px #18232b14;
   margin: 0 24px 24px;
@@ -134,7 +134,7 @@ thead {
 }
 
 th {
-  color: #41484e;
+  color: #424242;
   font-size: 12px;
   font-weight: 600;
   height: 46px;
@@ -181,14 +181,14 @@ tbody tr:hover {
 
 .empty-state,
 .status-message {
-  color: #69737a;
+  color: #666666;
   padding: 24px;
   text-align: center;
 }
 
 .error-message,
 .form-error {
-  color: #b42318;
+  color: #F44336;
 }
 
 .visually-hidden {
@@ -257,7 +257,7 @@ tbody tr:hover {
 }
 
 .customer-fields label {
-  color: #008fd0;
+  color: #019ED1;
   display: flex;
   flex-direction: column;
   font-size: 12px;
@@ -274,12 +274,12 @@ tbody tr:hover {
 }
 
 .customer-fields input[readonly] {
-  color: #69737a;
+  color: #666666;
 }
 
 .customer-fields .disabled-toggle {
   align-items: center;
-  color: #41484e;
+  color: #424242;
   flex-direction: row;
   grid-column: 1 / -1;
 }
@@ -382,7 +382,7 @@ tbody tr:hover {
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
-  color: #008fd0;
+  color: #019ED1;
   cursor: pointer;
   flex: 0 0 auto;
   font-size: 12px;
@@ -392,7 +392,7 @@ tbody tr:hover {
 }
 
 .customer-tabs button.active {
-  border-bottom-color: #009fc4;
+  border-bottom-color: #019ED1;
 }
 
 .dialog-content {
@@ -404,9 +404,9 @@ tbody tr:hover {
 .customer-fields textarea {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid #aab0b4;
+  border-bottom: 1px solid #BDBDBD;
   border-radius: 0;
-  color: #252a30;
+  color: #1C1C1C;
   font: inherit;
   outline: 0;
   padding: 5px 3px;
@@ -415,12 +415,12 @@ tbody tr:hover {
 }
 
 .customer-fields textarea:focus {
-  border-bottom: 2px solid #009fc4;
+  border-bottom: 2px solid #019ED1;
 }
 
 .check-field {
   align-items: center;
-  color: #41484e !important;
+  color: #424242 !important;
   flex-direction: row !important;
   min-height: 34px;
 }
@@ -451,7 +451,7 @@ tbody tr:hover {
 }
 
 .settings-sections legend {
-  color: #41484e;
+  color: #424242;
   font-size: 13px;
   margin-bottom: 8px;
 }
@@ -468,7 +468,7 @@ tbody tr:hover {
 
 .settings-list p,
 .tab-hint {
-  color: #69737a;
+  color: #666666;
   font-size: 12px;
 }
 

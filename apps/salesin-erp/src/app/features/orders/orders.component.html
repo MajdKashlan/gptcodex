@@ -205,7 +205,7 @@
                   <select formControlName="customer" (change)="chooseCustomer($event)"><option value="" disabled>Select customer</option>@for (customer of options().customers; track customer.name) {<option [value]="customer.name">{{ customer.customer_name }} · {{ customer.name }}</option>}</select>
                 </label>
                 <label>Company <span>*</span>
-                  <select formControlName="company"><option value="" disabled>Select company</option>@for (company of options().companies; track company.name) {<option [value]="company.name">{{ company.name }}</option>}</select>
+                  <select formControlName="company" (change)="chooseCompany($event)"><option value="" disabled>Select company</option>@for (company of options().companies; track company.name) {<option [value]="company.name">{{ company.name }}</option>}</select>
                 </label>
                 <label>Currency <span>*</span><input formControlName="currency" /></label>
                 <label>{{ createType() === 'Invoice' || createType() === 'Credit Note' ? 'Invoice Date' : createType() === 'Quote' ? 'Quote Date' : 'Order Date' }} <span>*</span><input type="date" formControlName="transaction_date" /></label>
@@ -215,6 +215,9 @@
                 </label>
                 <label>Warehouse
                   <select formControlName="set_warehouse"><option value="">Select warehouse</option>@for (warehouse of options().warehouses; track warehouse) {<option [value]="warehouse">{{ warehouse }}</option>}</select>
+                </label>
+                <label>Tax Template
+                  <select formControlName="taxes_and_charges"><option value="">No tax</option>@for (template of taxTemplates(); track template.name) {<option [value]="template.name">{{ template.title || template.name }}</option>}</select>
                 </label>
               </div>
               <div class="document-extra-fields order-fields">

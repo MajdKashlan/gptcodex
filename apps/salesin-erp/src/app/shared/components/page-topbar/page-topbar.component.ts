@@ -1,4 +1,5 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { LanguageService } from '../../../core/i18n/language.service';
 
 export interface PageTopbarAction {
   id: string;
@@ -18,6 +19,7 @@ export class PageTopbarComponent {
   readonly actions = input<PageTopbarAction[]>([]);
   readonly actionSelected = output<string>();
 
+  protected readonly i18n = inject(LanguageService);
   protected readonly menuOpen = signal(false);
   protected readonly userInitial = computed(() => this.userName().slice(0, 1).toUpperCase());
 

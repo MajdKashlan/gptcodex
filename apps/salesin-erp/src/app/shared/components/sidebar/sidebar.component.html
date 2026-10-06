@@ -1,28 +1,30 @@
 <aside class="sidebar">
   <a class="brand" routerLink="/"><b>S</b> Sales<em>In</em></a>
-  <nav aria-label="Main navigation">
-    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">▣ <span>Dashboard</span></a>
-    <a href="#">▦ <span>Appointments</span></a>
-    <a routerLink="/customers" routerLinkActive="active">♟ <span>Customers</span></a>
-    <a routerLink="/items" routerLinkActive="active">▤ <span>Items</span></a>
+  <nav [attr.aria-label]="i18n.t('shell.mainNavigation')">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">▣ <span>{{ i18n.t('nav.dashboard') }}</span></a>
+    <a href="#">▦ <span>{{ i18n.t('nav.appointments') }}</span></a>
+    <a routerLink="/customers" routerLinkActive="active">♟ <span>{{ i18n.t('nav.customers') }}</span></a>
+    <a routerLink="/items" routerLinkActive="active">▤ <span>{{ i18n.t('nav.items') }}</span></a>
+<a routerLink="/stock" routerLinkActive="active">▥ <span>{{ i18n.t('nav.stock') }}</span></a>
+<a routerLink="/payments" routerLinkActive="active">◈ <span>{{ i18n.t('nav.payments') }}</span></a>
     <button class="sales-nav-toggle" type="button" [attr.aria-expanded]="salesExpanded()" (click)="salesExpanded.set(!salesExpanded())">
-      <span class="nav-icon" aria-hidden="true">🛒</span><span>Sales</span><span class="nav-chevron" [class.expanded]="salesExpanded()" aria-hidden="true">›</span>
+      <span class="nav-icon" aria-hidden="true">🛒</span><span>{{ i18n.t('nav.sales') }}</span><span class="nav-chevron" [class.expanded]="salesExpanded()" aria-hidden="true">›</span>
     </button>
     @if (salesExpanded()) {
-      <div class="sales-subnav" aria-label="Sales pages">
-        <a routerLink="/sales" [queryParams]="{ view: 'all' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">All Sales</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'credit-notes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Credit Notes</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'customer-orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Customer Orders</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'invoices' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Invoices</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Orders</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'quotes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">Quotes</a>
+      <div class="sales-subnav" [attr.aria-label]="i18n.t('shell.salesPages')">
+        <a routerLink="/sales" [queryParams]="{ view: 'all' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.allSales') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'credit-notes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.creditNotes') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'customer-orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.customerOrders') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'invoices' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.invoices') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.orders') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'quotes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.quotes') }}</a>
       </div>
     }
-    <a href="#">▧ <span>Reports</span></a>
-    <a href="#">▣ <span>B2B eCommerce</span></a>
-    <a href="#">⚙ <span>Administration</span></a>
-    <a href="#">! <span>Feedback</span></a>
-    <a href="#">? <span>Help</span></a>
+    <a href="#">▧ <span>{{ i18n.t('nav.reports') }}</span></a>
+    <a href="#">▣ <span>{{ i18n.t('nav.b2b') }}</span></a>
+    <a href="#">⚙ <span>{{ i18n.t('nav.administration') }}</span></a>
+    <a href="#">! <span>{{ i18n.t('nav.feedback') }}</span></a>
+    <a href="#">? <span>{{ i18n.t('nav.help') }}</span></a>
   </nav>
   <div class="sidebar-user">
     @if (userImage(); as image) {
@@ -31,6 +33,13 @@
       <span class="user-avatar user-avatar-fallback" aria-hidden="true">{{ userInitial() }}</span>
     }
     <span class="user-name">{{ userName() }}</span>
-    <button type="button" (click)="signOut.emit()">Logout</button>
+    <button
+      class="language-toggle"
+      type="button"
+      [attr.aria-label]="i18n.t('shell.language')"
+      [attr.title]="i18n.t('shell.language')"
+      (click)="i18n.toggle()"
+    >{{ languageToggleLabel() }}</button>
+    <button type="button" (click)="signOut.emit()">{{ i18n.t('shell.logout') }}</button>
   </div>
 </aside>

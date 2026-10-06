@@ -1,4 +1,4 @@
-:host {
+  ok   topbar user menu text  ok   topbar gradient :host {
   display: block;
   position: relative;
   z-index: 2;
@@ -6,9 +6,9 @@
 
 .topbar {
   align-items: center;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  color: var(--text-primary);
+  background: linear-gradient(90deg, #12B3D5 0%, #1FC0DA 100%);
+  border-bottom: 0;
+  color: #ffffff;
   display: flex;
   height: 64px;
   justify-content: space-between;
@@ -29,7 +29,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  color: var(--text-secondary);
+  color: #ffffff;
   cursor: pointer;
   display: flex;
   font: inherit;

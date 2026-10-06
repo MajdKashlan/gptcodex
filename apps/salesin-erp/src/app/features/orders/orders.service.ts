@@ -3,10 +3,12 @@ import { inject, Injectable } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER } from '../../core/auth/auth.context';
 import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
+import { SalesTaxService } from './sales-tax.service';
 import { ErpNextCustomer } from '../../models/customer.models';
 import { ErpNextListResponse } from '../../models/erpnext-document.models';
 import { ErpNextItem } from '../../models/item.models';
 import { ErpNextSalesOrder } from '../../models/sales-order.models';
+import { SalesTaxesAndChargesTemplate } from '../../models/sales-tax.models';
 
 export interface OrderOptions {
   customers: ErpNextCustomer[];
@@ -14,11 +16,12 @@ export interface OrderOptions {
   companies: Array<{ name: string; default_currency?: string }>;
   priceLists: string[];
   warehouses: string[];
+  taxTemplates: SalesTaxesAndChargesTemplate[];
 }
 
 export type SalesOrderData = Pick<
   ErpNextSalesOrder,
-  'customer' | 'company' | 'transaction_date' | 'delivery_date' | 'currency' | 'selling_price_list' | 'set_warehouse' | 'items'
+  'customer' | 'company' | 'transaction_date' | 'delivery_date' | 'currency' | 'selling_price_list' | 'set_warehouse' | 'taxes_and_charges' | 'items'
 >;
 
 export type SalesDocumentType = 'Credit Note' | 'Invoice' | 'Order' | 'Quote';
@@ -42,6 +45,7 @@ export interface SalesDocumentDetails {
   remarks?: string;
   terms?: string;
   payment_terms_template?: string;
+  taxes_and_charges?: string;
   return_against?: string;
   is_return?: 0 | 1;
   docstatus?: 0 | 1 | 2;
@@ -92,6 +96,7 @@ interface SalesListRecord {
 export class OrdersService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(ErpNextAuthService);
+  private readonly taxService = inject(SalesTaxService);
 
   list(query = '', pageSize = 200): Observable<ErpNextSalesOrder[]> {
     const fields = [
@@ -221,6 +226,7 @@ export class OrdersService {
         po_no: details.po_no,
         remarks: details.remarks,
         payment_terms_template: details.payment_terms_template,
+        taxes_and_charges: details.taxes_and_charges,
         items,
       };
     } else if (type === 'Quote') {
@@ -237,6 +243,7 @@ export class OrdersService {
         po_no: details.po_no,
         terms: details.remarks,
         payment_terms_template: details.payment_terms_template,
+        taxes_and_charges: details.taxes_and_charges,
         items,
       };
     } else {
@@ -251,6 +258,7 @@ export class OrdersService {
         po_no: details.po_no,
         remarks: details.remarks,
         payment_terms_template: details.payment_terms_template,
+        taxes_and_charges: details.taxes_and_charges,
         is_return: type === 'Credit Note' ? 1 : 0,
         return_against: returnAgainst,
         items: items.map((item) => ({ ...item, qty: type === 'Credit Note' ? -Math.abs(item.qty) : item.qty })),
@@ -302,6 +310,7 @@ export class OrdersService {
         currency: order.currency ?? 'USD',
         selling_price_list: order.selling_price_list ?? '',
         set_warehouse: order.set_warehouse,
+        taxes_and_charges: order.taxes_and_charges,
         items: order.items.map((item) => ({
           item_code: item.item_code,
           item_name: item.item_name,
@@ -345,6 +354,7 @@ export class OrdersService {
       companies: this.listRecords<{ name: string; default_currency?: string }>('Company', ['name', 'default_currency']),
       priceLists: this.listNames('Price List', [['Price List', 'selling', '=', 1]]),
       warehouses: this.listNames('Warehouse', [['Warehouse', 'is_group', '=', 0]]),
+      taxTemplates: this.taxService.listTemplates(''),
     });
   }
 
@@ -386,6 +396,7 @@ export class OrdersService {
         po_no: details.po_no,
         remarks: details.remarks,
         payment_terms_template: details.payment_terms_template,
+        taxes_and_charges: details.taxes_and_charges,
         items,
       };
     } else if (type === 'Quote') {
@@ -403,6 +414,7 @@ export class OrdersService {
         po_no: details.po_no,
         terms: details.remarks,
         payment_terms_template: details.payment_terms_template,
+        taxes_and_charges: details.taxes_and_charges,
         items,
       };
     } else {
@@ -418,6 +430,7 @@ export class OrdersService {
         po_no: details.po_no,
         remarks: details.remarks,
         payment_terms_template: details.payment_terms_template,
+        taxes_and_charges: details.taxes_and_charges,
         is_return: type === 'Credit Note' ? 1 : 0,
         items: items.map((item) => ({ ...item, qty: type === 'Credit Note' ? -Math.abs(item.qty) : item.qty })),
       };

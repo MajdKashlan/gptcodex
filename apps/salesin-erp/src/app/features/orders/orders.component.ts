@@ -32,7 +32,7 @@ export class OrdersComponent implements OnInit {
   protected readonly userImage = computed(() => this.auth.currentUser()?.imageUrl);
   protected readonly topbarActions: PageTopbarAction[] = [{ id: 'logout', label: 'Logout' }];
   protected readonly orders = signal<SalesListRow[]>([]);
-  protected readonly options = signal<OrderOptions>({ customers: [], items: [], companies: [], priceLists: [], warehouses: [] });
+  protected readonly options = signal<OrderOptions>({ customers: [], items: [], companies: [], priceLists: [], warehouses: [], taxTemplates: [] });
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly workflowBusyName = signal<string | null>(null);
@@ -98,6 +98,7 @@ export class OrdersComponent implements OnInit {
     remarks: [''],
     payment_terms_template: [''],
     assigned_to: [''],
+    taxes_and_charges: [''],
   });
   protected readonly orderItems = this.formBuilder.array([this.createItemRow()]);
 
@@ -354,6 +355,7 @@ export class OrdersComponent implements OnInit {
       po_no: '',
       remarks: '',
       payment_terms_template: '',
+      taxes_and_charges: this.defaultTaxTemplateName(this.options().companies[0]?.name ?? ''),
       assigned_to: '',
     });
     this.orderItems.clear();
@@ -389,6 +391,7 @@ export class OrdersComponent implements OnInit {
             po_no: details.po_no ?? '',
             remarks: details.remarks ?? details.terms ?? '',
             payment_terms_template: details.payment_terms_template ?? '',
+            taxes_and_charges: details.taxes_and_charges ?? '',
             assigned_to: '',
           });
           this.orderItems.clear();
@@ -460,6 +463,46 @@ export class OrdersComponent implements OnInit {
     return this.orderItems.controls.reduce((sum, _row, index) => sum + this.lineAmount(index), 0);
   }
 
+  /** Tax templates belonging to the currently selected company. */
+  protected taxTemplates() {
+    const company = this.orderForm.controls.company.value;
+    return this.options().taxTemplates.filter(
+      (template) => !company || template.company === company,
+    );
+  }
+
+  /** A company's default tax template name, or '' when it has none marked default. */
+  protected defaultTaxTemplateName(company: string): string {
+    return (
+      this.options().taxTemplates.find(
+        (template) => template.company === company && template.is_default === 1,
+      )?.name ?? ''
+    );
+  }
+
+  /**
+   * Keeps currency and tax template consistent with the company. ERPNext rejects a
+   * tax template whose company does not match the document, so an incompatible
+   * selection is replaced rather than silently submitted.
+   */
+  protected chooseCompany(event: Event): void {
+    const companyName = (event.target as HTMLSelectElement).value;
+    const company = this.options().companies.find((row) => row.name === companyName);
+
+    if (company?.default_currency) {
+      this.orderForm.controls.currency.setValue(company.default_currency);
+    }
+
+    const selected = this.orderForm.controls.taxes_and_charges.value;
+    const stillValid = this.options().taxTemplates.some(
+      (template) => template.name === selected && template.company === companyName,
+    );
+    if (!stillValid) {
+      this.orderForm.controls.taxes_and_charges.setValue(
+        this.defaultTaxTemplateName(companyName),
+      );
+    }
+  }
   protected saveOrder(): void {
     const rows = this.orderItems.getRawValue().filter((row) => row.item_code && Number(row.qty) > 0);
     if (this.orderForm.controls.delivery_date.value <= this.orderForm.controls.transaction_date.value) {
