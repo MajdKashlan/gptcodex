@@ -1,0 +1,267 @@
+<main class="items-shell">
+  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+  <section class="items-page">
+    <app-page-topbar
+      title="Items"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
+    @if (createNotice(); as notice) {
+      <p class="state-message notice-message" role="status">{{ notice }}</p>
+    }
+
+    <section class="search-panel" aria-label="Search items">
+      <label class="category-picker">Item Group
+        <select [value]="selectedCategory() ?? ''" (change)="chooseCategoryFromEvent($event)">
+          <option value="">All Categories</option>
+        @for (category of categories(); track category) {
+            <option [value]="category">{{ category }}</option>
+        }
+        </select>
+      </label>
+
+      <form class="search-controls" (submit)="$event.preventDefault(); search()">
+        <fieldset class="search-modes">
+          <legend>Search mode</legend>
+          <label><input type="radio" name="searchMode" [checked]="searchMode() === 'name'" (change)="setSearchMode('name')" /> Search on Name</label>
+          <label><input type="radio" name="searchMode" [checked]="searchMode() === 'code'" (change)="setSearchMode('code')" /> Search on Code</label>
+          <label><input type="radio" name="searchMode" [checked]="searchMode() === 'either'" (change)="setSearchMode('either')" /> Search on Name or Code</label>
+        </fieldset>
+        <label class="search-field">Item name or code
+          <input type="search" [formControl]="searchText" placeholder="Search items" aria-label="Search items" />
+        </label>
+        <button class="search-button" type="submit">Search</button>
+      </form>
+      <button class="new-item-button" type="button" (click)="openNewItem()">+ New Item</button>
+    </section>
+
+    <div class="list-toolbar">
+      <label class="select-page"><input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" aria-label="Select all visible items" /></label>
+      <button class="icon-button edit-item" type="button" [disabled]="!selectedItem() || savingEdit()" (click)="openEditItem()" aria-label="Edit selected item" title="Edit selected item">✎</button>
+      <button class="icon-button refresh" type="button" [disabled]="loading()" [attr.aria-busy]="loading()" (click)="refresh()" aria-label="Refresh items" title="Refresh items">↻</button>
+      <span class="selection-count">{{ selectedNames().size }} selected</span>
+      <span class="result-count">{{ items().length }} items loaded</span>
+    </div>
+
+    @if (loading()) {
+      <p class="state-message" role="status">Loading items…</p>
+    } @else if (error(); as message) {
+      <p class="state-message error-message" role="alert">{{ message }}</p>
+    } @else {
+      <div class="table-frame">
+        <table>
+          <thead>
+            <tr>
+              <th class="check-column"></th>
+              <th class="image-column"><span class="visually-hidden">Image</span></th>
+              <th>Item ID</th>
+              <th>Item</th>
+              <th>Code</th>
+              <th>Barcode</th>
+              <th>Stock Level</th>
+              <th>Last Updated</th>
+              <th class="price-column">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of items(); track item.name) {
+              <tr
+                [class.row-selected]="selectedNames().has(item.name)"
+                class="item-row"
+                tabindex="0"
+                (click)="openEditItem(item)"
+                (keydown.enter)="openEditItem(item)"
+                (keydown.space)="$event.preventDefault(); openEditItem(item)"
+              >
+                <td class="check-column"><input type="checkbox" [checked]="selectedNames().has(item.name)" (click)="$event.stopPropagation()" (change)="toggleItem(item.name)" [attr.aria-label]="'Select ' + item.item_name" /></td>
+                <td class="item-image">
+                  @if (item.image) {
+                    <img [src]="item.image" [alt]="item.item_name" />
+                  } @else {
+                    <span class="item-placeholder" aria-hidden="true">▱</span>
+                  }
+                </td>
+                <td>{{ item.name }}</td>
+                <td class="item-name">{{ item.item_name }}</td>
+                <td>{{ item.item_code }}</td>
+                <td>{{ item.barcode || 'N/A' }}</td>
+                <td>{{ item.actual_qty ?? 'N/A' }}</td>
+                <td>{{ item.modified ? (item.modified | date:'mediumDate') : 'N/A' }}</td>
+                <td class="price-column">{{ formatPrice(item.standard_rate) }} @if (item.stock_uom) { <span class="price-uom">/ {{ item.stock_uom }}</span> }</td>
+              </tr>
+            } @empty {
+              <tr><td class="empty-state" colspan="9">No items match this search.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (newItemOpen()) {
+    <div class="dialog-backdrop" (click)="closeNewItem()">
+      <section class="new-item-dialog" role="dialog" aria-modal="true" aria-labelledby="new-item-title" (click)="$event.stopPropagation()">
+        <header class="new-item-heading"><h2 id="new-item-title">New Item</h2></header>
+        <nav class="item-tabs" aria-label="New item sections">
+          <button type="button" [class.active]="newItemTab() === 'profile'" (click)="setNewItemTab('profile')">Profile <span>*</span></button>
+          <button type="button" [class.active]="newItemTab() === 'stock'" (click)="setNewItemTab('stock')">Stock <span>*</span></button>
+          <button type="button" [class.active]="newItemTab() === 'images'" (click)="setNewItemTab('images')">Images</button>
+        </nav>
+
+        <form [formGroup]="newItemForm" (ngSubmit)="createItem()">
+          <div class="new-item-content">
+            @if (newItemTab() === 'profile') {
+              <div class="profile-fields">
+                <label class="field-wide">Name <span>*</span><input formControlName="itemName" autocomplete="off" /></label>
+                <label class="field-wide">Item Group <span>*</span>
+                  <select formControlName="itemGroup"><option value="" disabled>Select category</option>@for (category of categories(); track category) {<option [value]="category">{{ category }}</option>}</select>
+                </label>
+                <label>Code<input formControlName="itemCode" autocomplete="off" /></label>
+                <label>Bar Code<input formControlName="barcode" autocomplete="off" /></label>
+                <label>Sales Units <span>*</span><input type="number" min="1" formControlName="salesUnits" /></label>
+                <label>Unit of Sale <span>*</span><select formControlName="salesUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
+                <label>Sales Unit Price <span>*</span><input type="number" min="0.01" step="0.01" formControlName="price" /></label>
+                <label class="field-wide">Price List <span>*</span>
+                  <select formControlName="priceList"><option value="" disabled>Select price list</option>@for (priceList of priceLists(); track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+                </label>
+              </div>
+            } @else if (newItemTab() === 'stock') {
+              <section class="stock-fields">
+                <h3>Locations &amp; Stock Levels <span>*</span></h3>
+                <label class="stock-option"><input type="checkbox" formControlName="isStockItem" /><span>Maintain stock levels for this item</span></label>
+                <p>Initial stock quantities and warehouse balances are managed through ERPNext stock transactions after the item is created.</p>
+                <label class="uom-field">Stock Unit of Measure <span>*</span><select formControlName="stockUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
+              </section>
+            } @else {
+              <section class="image-fields">
+                @if (newItemForm.controls.imageUrl.value) {
+                  <img class="image-preview" [src]="newItemForm.controls.imageUrl.value" alt="Item preview" />
+                } @else {
+                  <span class="image-placeholder" aria-hidden="true">+</span>
+                }
+                <label>Image URL<input type="url" formControlName="imageUrl" placeholder="https://…" /></label>
+                <p>Use an image URL accessible to the ERPNext server.</p>
+              </section>
+            }
+            @if (createError(); as message) {
+              <p class="create-error" role="alert">{{ message }}</p>
+            }
+          </div>
+          <footer class="new-item-actions">
+            <button type="button" class="close-button" [disabled]="savingItem()" (click)="closeNewItem()">Close</button>
+            <button type="submit" class="save-button" [disabled]="savingItem() || newItemForm.invalid">{{ savingItem() ? 'Saving…' : 'Confirm' }}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (editItemOpen()) {
+    <div class="dialog-backdrop" (click)="closeEditItem()">
+      <section class="new-item-dialog edit-item-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-item-title" (click)="$event.stopPropagation()">
+        <header class="new-item-heading"><h2 id="edit-item-title">{{ duplicatingItem() ? 'Duplicate item' : editItemDetail()?.item_name }}</h2></header>
+        <nav class="item-tabs" aria-label="Edit item sections">
+          <button type="button" [class.active]="editItemTab() === 'profile'" (click)="setEditItemTab('profile')">Profile <span>*</span></button>
+          <button type="button" [class.active]="editItemTab() === 'stock'" (click)="setEditItemTab('stock')">Stock <span>*</span></button>
+          <button type="button" [class.active]="editItemTab() === 'images'" (click)="setEditItemTab('images')">Images</button>
+        </nav>
+        <form [formGroup]="editItemForm" (ngSubmit)="updateItem()">
+          <div class="new-item-content">
+            @if (editItemTab() === 'profile') {
+              <div class="profile-fields">
+                <label class="field-wide">Name <span>*</span><input formControlName="itemName" autocomplete="off" /></label>
+                <label class="field-wide">Item Group <span>*</span>
+                  <select formControlName="itemGroup"><option value="" disabled>Select category</option>@for (category of categories(); track category) {<option [value]="category">{{ category }}</option>}</select>
+                </label>
+                <label>Code <span>*</span><input formControlName="itemCode" autocomplete="off" [readonly]="!duplicatingItem()" /></label>
+                <label>Bar Code<input formControlName="barcode" autocomplete="off" /></label>
+                <label>Sales Unit Price<input type="number" min="0" step="0.01" formControlName="price" /></label>
+                <label>Price List <span>*</span>
+                  <select formControlName="priceList"><option value="" disabled>Select price list</option>@for (priceList of priceLists(); track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+                </label>
+                <label class="field-wide">Stock Unit of Measure <span>*</span>
+                  <select formControlName="stockUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select>
+                </label>
+              </div>
+            } @else if (editItemTab() === 'stock') {
+              <section class="stock-fields">
+                <h3>Locations &amp; Stock Levels <span>*</span></h3>
+                <div class="stock-level-table">
+                  <div class="stock-level-header"><span>Location</span><span>Stock Level</span></div>
+                  @for (level of stockLevels(); track level.warehouse) {
+                    <div class="stock-level-row"><span>{{ level.warehouse }}</span><span>{{ level.actual_qty }}</span></div>
+                  } @empty {
+                    <div class="stock-level-row"><span>No warehouse balances</span><span>N/A</span></div>
+                  }
+                </div>
+                <label class="stock-option"><input type="checkbox" formControlName="isStockItem" /><span>Maintain stock levels for this item</span></label>
+                <h3 class="sales-uom-heading">Units of Sale</h3>
+                @for (unit of editUoms.controls; track $index; let index = $index) {
+                  <div class="sales-uom-row" [formGroup]="unit">
+                    <label>Unit of Sale<select formControlName="uom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
+                    <label>Conversion Factor<input type="number" min="0.000001" step="any" formControlName="conversionFactor" /></label>
+                    <button class="remove-uom-button" type="button" (click)="removeSalesUom(index)" [attr.aria-label]="'Remove unit of sale ' + (index + 1)" title="Remove unit">×</button>
+                  </div>
+                }
+                <button class="add-uom-button" type="button" (click)="addSalesUom()">Add unit of sale</button>
+              </section>
+            } @else {
+              <section class="image-fields">
+                @if (editItemForm.controls.imageUrl.value) {
+                  <img class="image-preview" [src]="editItemForm.controls.imageUrl.value" alt="Item preview" />
+                } @else {
+                  <span class="image-placeholder" aria-hidden="true">+</span>
+                }
+                <label>Image URL<input type="url" formControlName="imageUrl" placeholder="https://…" /></label>
+                <p>Use an image URL accessible to the ERPNext server.</p>
+              </section>
+            }
+            @if (editError(); as message) {
+              <p class="create-error" role="alert">{{ message }}</p>
+            }
+          </div>
+          <footer class="new-item-actions">
+            <div class="edit-danger-actions">
+              @if (!duplicatingItem()) {
+                <button type="button" class="delete-button" [disabled]="savingEdit()" (click)="confirmDeleteItem()">Delete</button>
+                <button type="button" class="duplicate-button" [disabled]="savingEdit()" (click)="duplicateItem()">Duplicate</button>
+              }
+            </div>
+            <div class="edit-save-actions">
+              <button type="button" class="close-button" [disabled]="savingEdit()" (click)="closeEditItem()">Close</button>
+              <button type="submit" class="save-button" [disabled]="savingEdit() || editItemForm.invalid || editUoms.invalid">{{ savingEdit() ? 'Saving…' : duplicatingItem() ? 'Create Copy' : 'Confirm' }}</button>
+            </div>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (deleteConfirmationOpen()) {
+    <div class="dialog-backdrop nested-backdrop" (click)="cancelDeleteItem()">
+      <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-item-title" (click)="$event.stopPropagation()">
+        <h2 id="delete-item-title">Delete item?</h2>
+        <p>This permanently deletes {{ editItemDetail()?.item_name }} from ERPNext. This cannot be undone.</p>
+        <div class="dialog-actions">
+          <button type="button" class="cancel-button" [disabled]="savingEdit()" (click)="cancelDeleteItem()">Cancel</button>
+          <button type="button" class="delete-button" [disabled]="savingEdit()" (click)="deleteSelectedItem()">{{ savingEdit() ? 'Deleting…' : 'Delete item' }}</button>
+        </div>
+      </section>
+    </div>
+  }
+
+  @if (logoutConfirmationOpen()) {
+    <div class="dialog-backdrop" (click)="cancelSignOut()">
+      <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="logout-title" (click)="$event.stopPropagation()">
+        <h2 id="logout-title">Log out?</h2>
+        <p>You will need to sign in again to access the dashboard.</p>
+        <div class="dialog-actions">
+          <button type="button" class="cancel-button" [disabled]="logoutLoading()" (click)="cancelSignOut()">Cancel</button>
+          <button type="button" class="confirm-button" [disabled]="logoutLoading()" (click)="confirmSignOut()">{{ logoutLoading() ? 'Logging out…' : 'Log out' }}</button>
+        </div>
+      </section>
+    </div>
+  }
+</main>

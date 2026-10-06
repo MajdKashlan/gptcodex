@@ -1,0 +1,183 @@
+<main class="customers-shell">
+  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+  <section class="customers-page">
+    <app-page-topbar
+      title="Customers"
+      [userName]="userName()"
+      [userImage]="userImage() ?? null"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
+
+    <section class="customer-tools" aria-label="Customer tools">
+      <form class="customer-search" (submit)="$event.preventDefault(); search()">
+        <label for="customer-search">Customer ID or name</label>
+        <input id="customer-search" type="search" [formControl]="searchText" placeholder="Search customers" />
+        <button class="primary-button" type="submit" [disabled]="loading()">Search</button>
+      </form>
+      <div class="tool-actions">
+        <span>{{ customers().length }} customers</span>
+        <button class="secondary-button" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh customers" title="Refresh customers">↻</button>
+        <button class="primary-button new-customer-button" type="button" (click)="openNewCustomer()">+ New Customer</button>
+      </div>
+    </section>
+
+    @if (loadingCustomer()) {
+      <p class="status-message" role="status">Loading customer…</p>
+    }
+    @if (loading()) {
+      <p class="status-message" role="status">Loading customers…</p>
+    } @else if (error(); as message) {
+      <p class="status-message error-message" role="alert">{{ message }}</p>
+    } @else {
+      <div class="customer-table-frame">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer ID</th>
+              <th>Customer</th>
+              <th>Type</th>
+              <th>Customer Group</th>
+              <th>Territory</th>
+              <th>Currency</th>
+              <th>Status</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (customer of customers(); track customer.name) {
+              <tr tabindex="0" (click)="openEditCustomer(customer)" (keydown.enter)="openEditCustomer(customer)">
+                <td>{{ customer.name }}</td>
+                <td class="customer-name">{{ customer.customer_name }}</td>
+                <td>{{ customer.customer_type || 'Company' }}</td>
+                <td>{{ customer.customer_group || 'N/A' }}</td>
+                <td>{{ customer.territory || 'N/A' }}</td>
+                <td>{{ customer.default_currency || 'N/A' }}</td>
+                <td><span class="status" [class.disabled-status]="customer.disabled === 1">{{ customer.disabled === 1 ? 'Disabled' : 'Active' }}</span></td>
+                <td><button class="row-edit-button" type="button" (click)="$event.stopPropagation(); openEditCustomer(customer)">Edit</button></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="empty-state">No customers found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  @if (dialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <section class="customer-dialog" role="dialog" aria-modal="true" aria-labelledby="customer-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <h2 id="customer-dialog-title">{{ editingCustomer() ? 'Edit customer' : 'New customer' }}</h2>
+          <button type="button" class="dialog-close" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
+        </header>
+        <nav class="customer-tabs" aria-label="Customer sections">
+          <button type="button" [class.active]="customerFormTab() === 'profile'" (click)="setCustomerFormTab('profile')">Profile</button>
+          <button type="button" [class.active]="customerFormTab() === 'addresses'" (click)="setCustomerFormTab('addresses')">Addresses</button>
+          <button type="button" [class.active]="customerFormTab() === 'details'" (click)="setCustomerFormTab('details')">Details</button>
+          <button type="button" [class.active]="customerFormTab() === 'settings'" (click)="setCustomerFormTab('settings')">Settings</button>
+        </nav>
+        <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()">
+          <div class="dialog-content">
+            @if (customerFormTab() === 'profile') {
+              <div class="customer-fields profile-fields">
+                <label class="field-wide">Name <span>*</span><input formControlName="customer_name" autocomplete="organization" /></label>
+                <label>Code<input formControlName="alias" autocomplete="off" /></label>
+                <label>Business Number<input formControlName="tax_id" autocomplete="off" /></label>
+                <label>Customer Type <span>*</span>
+                  <select formControlName="customer_type"><option value="" disabled>Select type</option>@for (type of customerTypes; track type) {<option [value]="type">{{ type }}</option>}<option value="Partnership">Partnership</option></select>
+                </label>
+                <label>Customer Group <span>*</span>
+                  <select formControlName="customer_group"><option value="" disabled>Select group</option>@for (group of options().groups; track group) {<option [value]="group">{{ group }}</option>}</select>
+                </label>
+                <label>Territory <span>*</span>
+                  <select formControlName="territory"><option value="" disabled>Select territory</option>@for (territory of options().territories; track territory) {<option [value]="territory">{{ territory }}</option>}</select>
+                </label>
+                <label>First Name<input formControlName="first_name" autocomplete="given-name" /></label>
+                <label>Last Name<input formControlName="last_name" autocomplete="family-name" /></label>
+                <label class="field-wide">Email<input type="email" formControlName="email" autocomplete="email" /></label>
+                <label>Business Phone<input type="tel" formControlName="business_phone" autocomplete="tel" /></label>
+                <label>Home Phone<input type="tel" formControlName="home_phone" /></label>
+                <label>Mobile Phone<input type="tel" formControlName="mobile_phone" /></label>
+                <label>Fax<input formControlName="fax" /></label>
+              </div>
+            } @else if (customerFormTab() === 'addresses') {
+              <div class="customer-fields">
+                <label>Address Type <span>*</span>
+                  <select formControlName="address_type"><option>Billing</option><option>Shipping</option><option>Office</option><option>Personal</option><option>Other</option></select>
+                </label>
+                <label class="field-wide">Address Line 1<input formControlName="address_line1" autocomplete="address-line1" /></label>
+                <label class="field-wide">Address Line 2<input formControlName="address_line2" autocomplete="address-line2" /></label>
+                <label>Suburb / City<input formControlName="city" autocomplete="address-level2" /></label>
+                <label>State<input formControlName="state" autocomplete="address-level1" /></label>
+                <label>Postcode<input formControlName="pincode" autocomplete="postal-code" /></label>
+                <label>Country
+                  <select formControlName="country"><option value="">Select country</option>@for (country of options().countries; track country) {<option [value]="country">{{ country }}</option>}</select>
+                </label>
+              </div>
+              <p class="tab-hint">The address is linked to this customer when an address line, city, and country are provided.</p>
+            } @else if (customerFormTab() === 'details') {
+              <div class="customer-fields">
+                <label class="check-field"><input type="checkbox" formControlName="tax_applies" /><span>Tax Applies</span></label>
+                <label>Tax Category
+                  <select formControlName="tax_category"><option value="">No tax category</option>@for (taxCategory of options().taxCategories; track taxCategory) {<option [value]="taxCategory">{{ taxCategory }}</option>}</select>
+                </label>
+                <label class="check-field"><input type="checkbox" formControlName="is_frozen" /><span>Account Frozen</span></label>
+                <label class="check-field"><input type="checkbox" formControlName="on_hold" /><span>Credit Hold</span></label>
+                <label>Default Location<input formControlName="default_location" /></label>
+                <label>Discount Group<input formControlName="discount_group" /></label>
+                <label>Minimum Order Value<input type="number" min="0" step="0.01" formControlName="minimum_order_value" /></label>
+                <label>Default Terms
+                  <select formControlName="payment_terms"><option value="">No default terms</option>@for (terms of options().paymentTerms; track terms) {<option [value]="terms">{{ terms }}</option>}</select>
+                </label>
+                <label>Default Payment Method
+                  <select formControlName="default_payment_method"><option value="">No default method</option>@for (method of options().paymentMethods; track method) {<option [value]="method">{{ method }}</option>}</select>
+                </label>
+                <label>Currency Code
+                  <select formControlName="default_currency"><option value="">Use company default</option>@for (currency of options().currencies; track currency) {<option [value]="currency">{{ currency }}</option>}</select>
+                </label>
+                <label>Default Price List
+                  <select formControlName="default_price_list"><option value="">No default price list</option>@for (priceList of options().priceLists; track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+                </label>
+                <label class="field-wide">Comments<textarea formControlName="comments" rows="3"></textarea></label>
+                <label class="field-wide">Watchout Notes<textarea formControlName="watchout_notes" rows="3"></textarea></label>
+              </div>
+            } @else {
+              <section class="settings-sections">
+                <fieldset>
+                  <legend>Users</legend>
+                  <div class="settings-list">
+                    @for (user of options().users; track user) {
+                      <label class="check-field"><input type="checkbox" [checked]="isPortalUserSelected(user)" (change)="togglePortalUser(user)" /><span>{{ user }}</span></label>
+                    } @empty {
+                      <p>No users available.</p>
+                    }
+                  </div>
+                </fieldset>
+                <fieldset>
+                  <legend>Allowed Item Categories</legend>
+                  <div class="settings-list">
+                    @for (group of options().itemGroups; track group) {
+                      <label class="check-field"><input type="checkbox" [checked]="isItemGroupAllowed(group)" (change)="toggleItemGroup(group)" /><span>{{ group }}</span></label>
+                    } @empty {
+                      <p>No item categories available.</p>
+                    }
+                  </div>
+                </fieldset>
+                <label class="disabled-toggle"><input type="checkbox" formControlName="disabled" /><span>Disable this customer</span></label>
+              </section>
+            }
+            @if (formError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+          </div>
+          <footer class="dialog-actions">
+            <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">Cancel</button>
+            <button class="primary-button" type="submit" [disabled]="saving() || customerForm.invalid">{{ saving() ? 'Saving…' : editingCustomer() ? 'Save Changes' : 'Create Customer' }}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+</main>
