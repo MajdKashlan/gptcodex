@@ -1,16 +1,30 @@
 .login-page {
   align-items: center;
-  background: linear-gradient(135deg, #eef4ff, #f8f9ff);
+  background: radial-gradient(ellipse at 85% 5%, #d9eeeb 0, transparent 38%), var(--app-bg);
   display: flex;
   justify-content: center;
   min-height: 100dvh;
-  padding: 1.5rem;
+  padding: 24px;
 }
 
 .login-card {
-  max-width: 28rem;
-  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgb(32 72 72 / 11%);
+  max-width: 420px;
+  padding: 24px;
   width: 100%;
+}
+
+.login-card mat-card-title {
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.login-card mat-card-subtitle {
+  color: var(--text-secondary);
+  margin-top: 5px;
 }
 
 .mode-switch {
@@ -20,7 +34,9 @@
 }
 
 .mode-switch .selected {
-  outline: 2px solid var(--mat-sys-primary);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  outline: 2px solid var(--brand);
 }
 
 form {
@@ -44,5 +60,15 @@ mat-form-field {
 }
 
 .error {
-  color: var(--mat-sys-error);
+  color: var(--danger);
+}
+
+@media (max-width: 480px) {
+  .login-page {
+    padding: 14px;
+  }
+
+  .login-card {
+    padding: 18px;
+  }
 }

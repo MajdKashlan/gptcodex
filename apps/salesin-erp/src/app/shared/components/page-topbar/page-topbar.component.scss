@@ -6,18 +6,18 @@
 
 .topbar {
   align-items: center;
-  background: linear-gradient(100deg, #0098c9, #2bc0d2);
-  box-shadow: 0 1px 3px #aaa;
-  color: #fff;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
   display: flex;
-  height: 71px;
+  height: 64px;
   justify-content: space-between;
-  padding: 0 31px 0 16px;
+  padding: 0 24px;
 }
 
 .topbar h1 {
-  font-size: 24px;
-  font-weight: 400;
+  font-size: 20px;
+  font-weight: 600;
   margin: 0;
 }
 
@@ -29,7 +29,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  color: #fff;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   font: inherit;
@@ -58,17 +58,18 @@
 }
 
 .topbar-avatar-fallback {
-  background: #fff;
-  color: #00a1d3;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
   font-size: 14px;
   font-style: normal;
   font-weight: bold;
 }
 
 .user-menu-panel {
-  background: #fff;
-  border: 1px solid #d7dce2;
-  box-shadow: 0 4px 12px #0003;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-panel);
   min-width: 156px;
   padding: 5px;
   position: absolute;
@@ -80,23 +81,25 @@
 .user-menu-panel button {
   background: transparent;
   border: 0;
-  color: #3b4558;
+  border-radius: 4px;
+  color: var(--text-primary);
   cursor: pointer;
   display: block;
-  font-size: 12px;
-  padding: 9px 10px;
+  font-size: 13px;
+  padding: 10px;
   text-align: left;
   width: 100%;
 }
 
 .user-menu-panel button:hover,
 .user-menu-panel button:focus-visible {
-  background: #eef8fb;
+  background: var(--brand-soft);
 }
 
 @media (max-width: 650px) {
   .topbar {
-    padding: 0 12px;
+    height: 58px;
+    padding: 0 14px;
   }
 
   .topbar h1 {

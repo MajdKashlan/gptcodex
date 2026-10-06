@@ -1,7 +1,7 @@
 :host {
-  background: #3b4558;
+  background: var(--sidebar-bg);
   display: flex;
-  flex: 0 0 168px;
+  flex: 0 0 208px;
   flex-direction: column;
 }
 
@@ -13,22 +13,23 @@
 
 .brand {
   align-items: center;
-  border-bottom: 1px solid #168eb9;
+  border-bottom: 1px solid #3c555a;
   color: #fff;
   display: flex;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: bold;
   gap: 7px;
-  height: 52px;
-  padding-left: 16px;
+  height: 60px;
+  padding-left: 18px;
   text-decoration: none;
 }
 
 .brand b {
-  border: 2px solid #fff;
-  border-radius: 3px;
-  font-size: 19px;
-  padding: 1px 5px;
+  background: var(--brand);
+  border: 0;
+  border-radius: 6px;
+  font-size: 16px;
+  padding: 3px 7px;
 }
 
 .brand em {
@@ -44,10 +45,12 @@ nav a {
   align-items: center;
   color: #f0f2f7;
   display: flex;
-  font-size: 22px;
-  gap: 10px;
-  min-height: 39px;
-  padding: 7px 13px;
+  border-radius: 6px;
+  font-size: 18px;
+  gap: 12px;
+  margin: 2px 9px;
+  min-height: 43px;
+  padding: 7px 12px;
   text-decoration: none;
 }
 
@@ -59,20 +62,22 @@ nav a {
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 22px;
-  gap: 10px;
-  min-height: 39px;
-  padding: 7px 13px;
+  border-radius: 6px;
+  font-size: 18px;
+  gap: 12px;
+  margin: 2px 9px;
+  min-height: 43px;
+  padding: 7px 12px;
   text-align: left;
-  width: 100%;
+  width: calc(100% - 18px);
 }
 
 .sales-nav-toggle:hover {
-  background: #46536b;
+  background: var(--sidebar-hover);
 }
 
 .sales-nav-toggle > span:nth-child(2) {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .nav-chevron {
@@ -96,8 +101,10 @@ nav a {
   color: #f0f2f7;
   display: flex;
   font-size: 13px;
-  min-height: 48px;
-  padding: 8px 10px 8px 47px;
+  border-radius: 5px;
+  margin: 1px 9px 1px 18px;
+  min-height: 40px;
+  padding: 7px 8px 7px 38px;
   position: relative;
   text-decoration: none;
 }
@@ -105,13 +112,14 @@ nav a {
 .sales-subnav a::before {
   content: '›';
   font-size: 20px;
-  left: 18px;
+  left: 14px;
   position: absolute;
 }
 
 .sales-subnav a:hover,
 .sales-subnav a.active {
-  background: #46536b;
+  background: var(--sidebar-hover);
+  color: #a9e6df;
 }
 
 nav a span {
@@ -120,18 +128,23 @@ nav a span {
 
 nav a:hover,
 nav .active {
-  background: #46536b;
+  background: var(--sidebar-hover);
+}
+
+nav a.active,
+.sales-nav-toggle[aria-expanded="true"] {
+  color: #a9e6df;
 }
 
 .sidebar-user {
   align-items: center;
-  border-top: 1px solid #59657b;
+  border-top: 1px solid #3c555a;
   color: #fff;
   display: grid;
   gap: 6px;
   grid-template-columns: 34px 1fr;
   margin-top: auto;
-  padding: 13px;
+  padding: 14px;
 }
 
 .user-avatar {
@@ -160,8 +173,8 @@ nav .active {
 
 .sidebar-user button {
   background: transparent;
-  border: 1px solid #8b98ae;
-  border-radius: 3px;
+  border: 1px solid #62777a;
+  border-radius: 6px;
   color: #fff;
   cursor: pointer;
   font-size: 12px;
@@ -170,7 +183,7 @@ nav .active {
 }
 
 .sidebar-user button:hover {
-  background: #536178;
+  background: var(--sidebar-hover);
 }
 
 @media (max-width: 700px) {
@@ -197,10 +210,17 @@ nav .active {
   .sales-nav-toggle {
     justify-content: center;
     padding: 8px;
+    width: calc(100% - 18px);
   }
 
   :host(.sales-expanded) {
-    flex-basis: 210px;
+    bottom: 0;
+    flex: 0 0 210px;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 210px;
+    z-index: 5;
   }
 
   :host(.sales-expanded) .sales-nav-toggle {

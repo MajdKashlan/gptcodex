@@ -8,6 +8,7 @@ import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
 import { SalesOrderItem } from '../../models/sales-order.models';
 import { PageTopbarAction, PageTopbarComponent } from '../../shared/components/page-topbar/page-topbar.component';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { getPageCount, paginateCollection } from './orders-pagination';
 import { OrderOptions, OrdersService, SalesDocumentType, SalesListRow, SalesListView, SalesOrderData } from './orders.service';
 
 type OrderTab = 'all' | 'open' | 'closed';
@@ -52,6 +53,7 @@ export class OrdersComponent implements OnInit {
   protected readonly selectedTab = signal<OrderTab>('all');
   protected readonly selectedOrderNames = signal<Set<string>>(new Set());
   protected readonly pageSize = signal(20);
+  protected readonly currentPage = signal(1);
   protected readonly hideSearch = signal(false);
   protected readonly compactRows = signal(false);
   protected readonly toolValue = new FormControl('', { nonNullable: true });
@@ -61,6 +63,8 @@ export class OrdersComponent implements OnInit {
     const isClosed = ['Closed', 'Completed', 'Cancelled'].includes(order.status ?? '');
     return this.selectedTab() === 'all' || (this.selectedTab() === 'closed' ? isClosed : !isClosed);
   }));
+  protected readonly pageCount = computed(() => getPageCount(this.visibleOrders(), this.pageSize()));
+  protected readonly pagedOrders = computed(() => paginateCollection(this.visibleOrders(), this.currentPage(), this.pageSize()));
   protected readonly selectedOrders = computed(() => this.visibleOrders().filter((order) => this.selectedOrderNames().has(this.salesRowKey(order))));
   protected readonly selectedSalesOrders = computed(() => this.selectedOrders().filter((order) => order.doctype === 'Sales Order'));
   protected readonly canChangeSelectedStatus = computed(() => {
@@ -106,6 +110,7 @@ export class OrdersComponent implements OnInit {
     ).subscribe((view) => {
       if (view === this.salesView()) return;
       this.salesView.set(view);
+      this.currentPage.set(1);
       this.selectedOrderNames.set(new Set());
       if (this.pageReady()) this.loadOrders();
     });
@@ -132,15 +137,23 @@ export class OrdersComponent implements OnInit {
   }
 
   protected setTab(tab: OrderTab): void {
+    this.currentPage.set(1);
     this.selectedTab.set(tab);
   }
 
   protected search(): void {
+    this.currentPage.set(1);
     this.loadOrders();
   }
 
   protected refresh(): void {
+    this.currentPage.set(1);
     this.loadOrders();
+  }
+
+  protected goToPage(page: number): void {
+    const nextPage = Math.min(Math.max(1, page), this.pageCount());
+    this.currentPage.set(nextPage);
   }
 
   protected toggleOrder(order: SalesListRow, checked: boolean): void {
@@ -535,6 +548,7 @@ export class OrdersComponent implements OnInit {
         next: ({ options, orders }) => {
           this.options.set(options);
           this.orders.set(orders);
+          this.currentPage.set(Math.min(this.currentPage(), this.pageCount()));
           this.error.set(null);
         },
         error: (error: unknown) => this.error.set(this.errorMessage(error)),
@@ -571,6 +585,7 @@ export class OrdersComponent implements OnInit {
       .subscribe({
         next: (orders) => {
           this.orders.set(orders);
+          this.currentPage.set(Math.min(this.currentPage(), this.pageCount()));
           this.error.set(null);
         },
         error: (error: unknown) => this.error.set(this.errorMessage(error)),
@@ -616,6 +631,7 @@ export class OrdersComponent implements OnInit {
       return;
     }
     this.pageSize.set(pageSize);
+    this.currentPage.set(1);
     try {
       localStorage.setItem('sales-order-page-settings', JSON.stringify({
         pageSize,

@@ -31,7 +31,7 @@
         </section>
       </div>
     }
-    <button class="fab" aria-label="Create new">+</button>
+    
     @if (passwordDialogOpen()) {
       <div class="dialog-backdrop" (click)="closePasswordDialog()">
         <section
@@ -100,8 +100,60 @@
       <article class="widget metric"><header><b>Total sales</b><small>Live from Sales Orders</small></header><strong>{{ formatCurrency(dashboard().totalSales) }}</strong><span>{{ dashboard().salesOrderCount }} orders loaded</span></article>
       <article class="widget metric"><header><b>Orders</b><small>Current ERPNext data</small></header><strong>{{ dashboard().salesOrderCount }}</strong><span>{{ dashboard().openOrderCount }} open · {{ dashboard().closedOrderCount }} closed</span></article>
       <article class="widget metric"><header><b>Accounts &amp; items</b><small>Current ERPNext data</small></header><strong>{{ dashboard().customerCount }} / {{ dashboard().itemCount }}</strong><span>customers / items</span></article>
-      <article class="widget pie-card"><header><b>Total - Top 10 Item Volume</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie multi"></div></article>
-      <article class="widget pie-card"><header><b>Total - Volume by User</b><small>No filter applied. <a href="#">Click here to open the widget settings.</a></small></header><div class="pie"></div></article>
+      <article class="widget sales-trend-widget">
+        <header class="trend-heading">
+          <div><b>Sales order trend</b><small>Order value by day · last {{ trendRange() }} days</small></div>
+          <div class="trend-ranges" role="group" aria-label="Sales trend date range">
+            <button type="button" [class.active]="trendRange() === 7" [attr.aria-pressed]="trendRange() === 7" (click)="setTrendRange(7)">7D</button>
+            <button type="button" [class.active]="trendRange() === 30" [attr.aria-pressed]="trendRange() === 30" (click)="setTrendRange(30)">30D</button>
+            <button type="button" [class.active]="trendRange() === 90" [attr.aria-pressed]="trendRange() === 90" (click)="setTrendRange(90)">90D</button>
+          </div>
+        </header>
+        <div class="trend-summary">
+          <div><strong>{{ formatCurrency(trendTotal()) }}</strong><span>Order value</span></div>
+          <div><strong>{{ trendOrderCount() }}</strong><span>Orders</span></div>
+        </div>
+        <div class="trend-chart">
+          @if (chartPoints().length) {
+            <svg viewBox="0 0 720 252" preserveAspectRatio="none" role="group" [attr.aria-label]="'Sales order trend for the last ' + trendRange() + ' days'">
+              <defs>
+                <linearGradient id="sales-trend-fill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#087f83" stop-opacity=".22" />
+                  <stop offset="100%" stop-color="#087f83" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <path class="trend-grid" d="M32 54H688 M32 96H688 M32 138H688 M32 180H688 M32 218H688" />
+              <path class="trend-area" [attr.d]="chartArea()" />
+              <polyline class="trend-line" [attr.points]="chartLine()" />
+              @for (point of chartPoints(); track point.date) {
+                <circle
+                  class="trend-point"
+                  [class.selected]="activeTrendPoint()?.date === point.date"
+                  [attr.cx]="point.x"
+                  [attr.cy]="point.y"
+                  [attr.r]="point.orderCount ? 5 : 3"
+                  [attr.tabindex]="point.orderCount ? 0 : -1"
+                  role="button"
+                  [attr.aria-label]="point.label + ': ' + formatCurrency(point.total) + ', ' + point.orderCount + ' orders'"
+                  (pointerenter)="inspectTrendPoint(point)"
+                  (focus)="inspectTrendPoint(point)"
+                  (click)="inspectTrendPoint(point)"
+                />
+              }
+            </svg>
+            <div class="trend-axis"><span>{{ chartPoints()[0].label }}</span><span>{{ chartPoints()[chartPoints().length - 1].label }}</span></div>
+          } @else {
+            <p class="trend-empty">Sales trend data is not available.</p>
+          }
+        </div>
+        <div class="trend-detail" aria-live="polite">
+          @if (activeTrendPoint(); as point) {
+            <strong>{{ point.label }}</strong><span>{{ formatCurrency(point.total) }} · {{ point.orderCount }} orders</span>
+          } @else {
+            <span>Focus or point to a chart marker for daily details.</span>
+          }
+        </div>
+      </article>
       <article class="widget"><header><b>Performance Snapshot</b><small>Live from Sales Orders</small></header><table><tr><th></th><th>Value</th></tr><tr><td>Sales orders</td><td>{{ dashboard().salesOrderCount }}</td></tr><tr><td>Total sales</td><td>{{ formatCurrency(dashboard().totalSales) }}</td></tr><tr><td>Open orders</td><td>{{ dashboard().openOrderCount }}</td></tr><tr><td>Closed orders</td><td>{{ dashboard().closedOrderCount }}</td></tr></table></article>
       <article class="widget list"><header><b>Top Customers</b><small>Ranked by loaded order value</small></header>@for (customer of dashboard().topCustomers; track customer.name) {<p>{{ customer.name }} <strong>{{ formatCurrency(customer.total) }}　›</strong></p>} @empty {<p>No sales data available.</p>}</article>
       <article class="widget list"><header><b>Popular Items</b><small>Ranked by ordered quantity</small></header>@for (item of dashboard().popularItems; track item.name) {<p>{{ item.name }} <strong>{{ item.quantity }}　›</strong></p>} @empty {<p>No item data available.</p>}</article>

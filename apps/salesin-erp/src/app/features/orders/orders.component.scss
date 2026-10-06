@@ -150,7 +150,34 @@
   height: 38px;
   justify-content: center;
   padding: 0;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
   width: 38px;
+}
+
+.tool-button:hover:not(:disabled) {
+  box-shadow: 0 5px 14px rgb(23 41 48 / 18%);
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.tool-button svg {
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  width: 18px;
+}
+
+.tool-button.select-tool svg rect,
+.tool-button.select-tool svg path {
+  stroke: currentColor;
+}
+
+.tool-button.select-tool svg path:last-child {
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .select-tool { background: #788b24; }
@@ -248,6 +275,22 @@ button:disabled {
   box-shadow: 0 1px 3px #18232b14;
   margin: 0 24px 24px;
   overflow-x: auto;
+}
+
+.pagination-bar {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e7e9eb;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 12px 16px;
+}
+
+.pagination-bar span {
+  color: #49545d;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 table {

@@ -27,18 +27,81 @@
       }
       <div class="tool-actions">
         <span class="selection-count">{{ selectedOrders().length }} selected / {{ visibleOrders().length }} orders</span>
-        <button class="tool-button select-tool" type="button" (click)="toggleAllVisible(!allVisibleSelected())" [attr.aria-label]="allVisibleSelected() ? 'Uncheck all visible sales orders' : 'Check all visible sales orders'" [title]="allVisibleSelected() ? 'Uncheck all' : 'Check all'">{{ allVisibleSelected() ? '☑' : '□' }}</button>
-        <button class="tool-button status-tool" type="button" [disabled]="!canChangeSelectedStatus()" (click)="openToolDialog('status')" aria-label="Change sales status" title="Submit or cancel selected documents of one type">⇄</button>
-        <button class="tool-button type-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="openToolDialog('type')" aria-label="Change sales type" title="Change sales type">▤</button>
-        <button class="tool-button assigned-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="openToolDialog('assigned')" aria-label="Change assigned user" title="Change assigned user">♙</button>
-        <button class="tool-button payment-tool" type="button" [disabled]="!canPaySelected()" (click)="openToolDialog('payment')" aria-label="Add payment" title="Add payment">$</button>
-        <button class="tool-button excel-tool" type="button" [disabled]="!selectedOrders().length" (click)="exportExcel()" aria-label="Download Excel-compatible file" title="Download Excel-compatible CSV">X</button>
-        <button class="tool-button pdf-tool" type="button" [disabled]="!selectedOrders().length" (click)="downloadPdf()" aria-label="Download PDF" title="Print or save selected orders as PDF">▣</button>
-        <button class="tool-button email-tool" type="button" [disabled]="!selectedOrders().length" (click)="emailSelected()" aria-label="Email selected orders" title="Email selected orders">✉</button>
-        <button class="tool-button duplicate-tool" type="button" [disabled]="!canManageSalesOrders() || selectedSalesOrders().length !== 1" (click)="duplicateSelected()" aria-label="Duplicate selected order" title="Duplicate selected order">⧉</button>
-        <button class="tool-button delete-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="deleteSelected()" aria-label="Delete selected draft orders" title="Delete selected draft orders">⌫</button>
-        <button class="tool-button settings-tool" type="button" (click)="openToolDialog('settings')" aria-label="Page settings" title="Page settings">⚙</button>
-        <button class="tool-button refresh-tool" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh sales orders" title="Refresh sales orders">↻</button>
+        <button class="tool-button select-tool" type="button" (click)="toggleAllVisible(!allVisibleSelected())" [attr.aria-label]="allVisibleSelected() ? 'Uncheck all visible sales orders' : 'Check all visible sales orders'" [title]="allVisibleSelected() ? 'Uncheck all' : 'Check all'">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4.5" y="4.5" width="15" height="15" rx="2.5" />
+            <path [attr.d]="allVisibleSelected() ? 'M7 12.5l3 3 7-8' : 'M7 12h10'" />
+          </svg>
+        </button>
+        <button class="tool-button status-tool" type="button" [disabled]="!canChangeSelectedStatus()" (click)="openToolDialog('status')" aria-label="Change sales status" title="Submit or cancel selected documents of one type">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 8h7l3 3v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z" />
+            <path d="M11 8V5m0 0 2.5 2.5M11 5 8.5 7.5" />
+            <path d="M12 16h5" />
+          </svg>
+        </button>
+        <button class="tool-button type-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="openToolDialog('type')" aria-label="Change sales type" title="Change sales type">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 7.5V18a1.5 1.5 0 0 0 1.5 1.5h10.5A1.5 1.5 0 0 0 18.5 18V7.5" />
+            <path d="M8 4.5h8l2 3H6l2-3Z" />
+            <path d="M8 11.5h8M8 15.5h8" />
+          </svg>
+        </button>
+        <button class="tool-button assigned-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="openToolDialog('assigned')" aria-label="Change assigned user" title="Change assigned user">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8.5 10.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z" />
+            <path d="M5.5 18.5a6.5 6.5 0 0 1 13 0" />
+            <path d="M17.5 5.5h2.5v2.5" />
+          </svg>
+        </button>
+        <button class="tool-button payment-tool" type="button" [disabled]="!canPaySelected()" (click)="openToolDialog('payment')" aria-label="Add payment" title="Add payment">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3.5v17" />
+            <path d="M16.5 6.5H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5h-7" />
+          </svg>
+        </button>
+        <button class="tool-button excel-tool" type="button" [disabled]="!selectedOrders().length" (click)="exportExcel()" aria-label="Download Excel-compatible file" title="Download Excel-compatible CSV">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 4.5h7l4 4V18a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Z" />
+            <path d="M14 4.5v4h4M8 12h8M8 15h8" />
+          </svg>
+        </button>
+        <button class="tool-button pdf-tool" type="button" [disabled]="!selectedOrders().length" (click)="downloadPdf()" aria-label="Download PDF" title="Print or save selected orders as PDF">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 3.5h7l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-14a2 2 0 0 1 2-2Z" />
+            <path d="M14 3.5v4h4M8.5 13.5h7M8.5 16.5h7" />
+          </svg>
+        </button>
+        <button class="tool-button email-tool" type="button" [disabled]="!selectedOrders().length" (click)="emailSelected()" aria-label="Email selected orders" title="Email selected orders">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+            <path d="m4.5 7.5 7.5 6 7.5-6" />
+          </svg>
+        </button>
+        <button class="tool-button duplicate-tool" type="button" [disabled]="!canManageSalesOrders() || selectedSalesOrders().length !== 1" (click)="duplicateSelected()" aria-label="Duplicate selected order" title="Duplicate selected order">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4.5" y="6.5" width="11.5" height="13.5" rx="2" />
+            <path d="M8.5 6.5V4.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+          </svg>
+        </button>
+        <button class="tool-button delete-tool" type="button" [disabled]="!canManageSalesOrders()" (click)="deleteSelected()" aria-label="Delete selected draft orders" title="Delete selected draft orders">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4.5 7.5h15" />
+            <path d="M9 7.5V5.5h6v2M7 7.5l1 11h8l1-11" />
+          </svg>
+        </button>
+        <button class="tool-button settings-tool" type="button" (click)="openToolDialog('settings')" aria-label="Page settings" title="Page settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.5" />
+            <path d="M19 12a7.1 7.1 0 0 0-.1-1l2-1.5-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L14.2 3h-4.4l-.5 2.5a7.7 7.7 0 0 0-1.7 1L5.1 5.5l-2 3.5 2 1.5a7.1 7.1 0 0 0-.1 1c0 .3 0 .7.1 1L3.1 15l2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.5 2.5h4.4l.5-2.5c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5-2-1.5c.1-.3.1-.7.1-1Z" />
+          </svg>
+        </button>
+        <button class="tool-button refresh-tool" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh sales orders" title="Refresh sales orders">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 11a8 8 0 1 0 2 5.3" />
+            <path d="M20 4v7h-7" />
+          </svg>
+        </button>
         <div class="add-document-menu">
           <button class="primary-button add-document-trigger" type="button" [attr.aria-expanded]="addMenuOpen()" (click)="addMenuOpen.set(!addMenuOpen())">+ Add New</button>
           @if (addMenuOpen()) {
@@ -66,6 +129,13 @@
       <p class="status-message error-message" role="alert">{{ message }}</p>
     } @else {
       <div class="orders-table-frame" [class.compact-rows]="compactRows()">
+        @if (pageCount() > 1) {
+          <div class="pagination-bar" aria-label="Sales record pagination">
+            <button class="secondary-button" type="button" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">Prev</button>
+            <span>Page {{ currentPage() }} of {{ pageCount() }}</span>
+            <button class="secondary-button" type="button" [disabled]="currentPage() === pageCount()" (click)="goToPage(currentPage() + 1)">Next</button>
+          </div>
+        }
         <table>
           <thead>
             <tr>
@@ -81,7 +151,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (order of visibleOrders(); track order.name) {
+            @for (order of pagedOrders(); track order.name) {
               <tr [class.read-only-row]="order.docstatus !== 0" [attr.tabindex]="order.docstatus === 0 ? 0 : null" (click)="openEditOrder(order)" (keydown.enter)="openEditOrder(order)">
                 <td class="checkbox-column" (click)="$event.stopPropagation()"><input type="checkbox" [checked]="selectedOrderNames().has(salesRowKey(order))" (change)="toggleOrder(order, $any($event.target).checked)" [attr.aria-label]="'Select ' + order.name" /></td>
                 <td>{{ order.name }}</td>

@@ -19,6 +19,13 @@ export interface DashboardItem {
   quantity: number;
 }
 
+export interface DashboardTrendPoint {
+  date: string;
+  label: string;
+  total: number;
+  orderCount: number;
+}
+
 export interface DashboardData {
   salesOrderCount: number;
   openOrderCount: number;
@@ -28,6 +35,7 @@ export interface DashboardData {
   itemCount: number;
   topCustomers: DashboardCustomer[];
   popularItems: DashboardItem[];
+  salesTrend: DashboardTrendPoint[];
   unavailableResources: string[];
 }
 
@@ -43,6 +51,8 @@ export class HomeDashboardService {
       'customer_name',
       'grand_total',
       'status',
+      'transaction_date',
+      'docstatus',
     ]);
     const customers = this.list<ErpNextCustomer>('Customer', ['name']);
     const items = this.list<ErpNextItem>('Item', ['name']);
@@ -109,7 +119,34 @@ export class HomeDashboardService {
         .map(([name, quantity]) => ({ name, quantity }))
         .sort((first, second) => second.quantity - first.quantity)
         .slice(0, 5),
+      salesTrend: this.buildSalesTrend(orders),
       unavailableResources,
     };
+  }
+
+  private buildSalesTrend(orders: ErpNextSalesOrder[]): DashboardTrendPoint[] {
+    const totalsByDate = new Map<string, { total: number; orderCount: number }>();
+    for (const order of orders) {
+      if (!order.transaction_date || order.docstatus === 2) continue;
+      const current = totalsByDate.get(order.transaction_date) ?? { total: 0, orderCount: 0 };
+      current.total += order.grand_total ?? 0;
+      current.orderCount += 1;
+      totalsByDate.set(order.transaction_date, current);
+    }
+
+    const endDate = new Date();
+    endDate.setUTCHours(0, 0, 0, 0);
+    return Array.from({ length: 90 }, (_, index) => {
+      const date = new Date(endDate);
+      date.setUTCDate(date.getUTCDate() - (89 - index));
+      const key = date.toISOString().slice(0, 10);
+      const daily = totalsByDate.get(key) ?? { total: 0, orderCount: 0 };
+      return {
+        date: key,
+        label: new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date),
+        total: daily.total,
+        orderCount: daily.orderCount,
+      };
+    });
   }
 }

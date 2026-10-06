@@ -1,8 +1,512 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+    color-scheme: light;
+    --app-bg: #f2f6f5;
+    --surface: #fff;
+    --surface-raised: #fff;
+    --surface-soft: #f7faf9;
+    --text-primary: #172c30;
+    --text-secondary: #607276;
+    --text-muted: #7b8b8e;
+    --border: #dce6e4;
+    --border-strong: #c9d7d5;
+    --brand: #087f83;
+    --brand-strong: #06676c;
+    --brand-soft: #e2f2f0;
+    --positive: #2e8b63;
+    --warning: #a66a1f;
+    --danger: #b6423a;
+    --sidebar-bg: #24363c;
+    --sidebar-hover: #30474d;
+    --shadow-panel: 0 1px 3px rgb(26 53 56 / 7%), 0 8px 24px rgb(26 53 56 / 3%);
+    --radius-control: 6px;
+    --radius-panel: 8px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background: var(--app-bg);
+    font-size: 14px;
+    min-height: 100%;
+    min-width: 320px;
+    text-size-adjust: 100%;
+}
 
 body {
-    font-family: "Roboto", sans-serif;
-    font-size: 22px;
+    background: var(--app-bg);
+    color: var(--text-primary);
+    font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
     margin: 0;
-    padding: 0  
+    min-height: 100dvh;
+    padding: 0;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button {
+    touch-action: manipulation;
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease, filter .15s ease, opacity .15s ease;
+}
+
+button:hover:not(:disabled) {
+    filter: brightness(0.98);
+    transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+:focus-visible {
+    outline: 3px solid rgb(8 127 131 / 35%);
+    outline-offset: 2px;
+}
+
+::selection {
+    background: #c9e8e4;
+    color: #17383a;
+}
+
+body :is(.shell, .customers-shell, .items-shell, .orders-shell) {
+    background: var(--app-bg);
+    color: var(--text-primary);
+    position: relative;
+}
+
+body :is(.customer-tools, .order-tools, .search-panel) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body :is(.customer-table-frame, .orders-table-frame, .table-frame) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body :is(.widget, .customer-dialog, .order-dialog, .tool-dialog, .new-item-dialog, .confirm-dialog, .password-dialog) {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body :is(.order-dialog, .tool-dialog, .customer-dialog, .new-item-dialog, .confirm-dialog, .password-dialog) {
+    color: var(--text-primary);
+}
+
+body :is(.dialog-heading, .new-item-heading) {
+    background: var(--surface-soft);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+body :is(.dialog-heading h2, .new-item-heading h2, .password-dialog h2, .confirm-dialog h2) {
+    color: var(--text-primary);
+}
+
+body :is(.dialog-kicker, .dialog-heading .dialog-kicker) {
+    color: var(--text-secondary);
+}
+
+body :is(.primary-button, .new-item-button, .search-button, .save-button, .confirm-button, .dialog-action) {
+    background: var(--brand);
+    border: 1px solid var(--brand);
+    border-radius: var(--radius-control);
+    color: #fff;
+    font-weight: 600;
+    min-height: 40px;
+}
+
+body :is(.primary-button, .new-item-button, .search-button, .save-button, .confirm-button, .dialog-action):hover:not(:disabled) {
+    background: var(--brand-strong);
+    border-color: var(--brand-strong);
+    box-shadow: 0 4px 12px rgb(8 127 131 / 18%);
+}
+
+body :is(.secondary-button, .close-button, .dialog-cancel) {
+    background: #edf3f2;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    color: var(--text-primary);
+    min-height: 40px;
+}
+
+body :is(.secondary-button, .close-button, .dialog-cancel):hover:not(:disabled) {
+    background: #e3ecea;
+    box-shadow: 0 3px 8px rgb(26 53 56 / 8%);
+}
+
+body :is(.order-search input, .order-fields input, .order-fields select, .order-fields textarea,
+    .customer-search input, .customer-fields input, .customer-fields select, .customer-fields textarea,
+    .category-picker select, .search-field input, .profile-fields input, .profile-fields select,
+    .image-fields input, .uom-field input, .sales-uom-row input, .sales-uom-row select) {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    color: var(--text-primary);
+    min-height: 40px;
+    padding: 8px 10px;
+}
+
+body :is(.order-search input:focus, .order-fields input:focus, .order-fields select:focus, .order-fields textarea:focus,
+    .customer-search input:focus, .customer-fields input:focus, .customer-fields select:focus, .customer-fields textarea:focus,
+    .category-picker select:focus, .search-field input:focus, .profile-fields input:focus, .profile-fields select:focus,
+    .image-fields input:focus, .uom-field input:focus, .sales-uom-row input:focus, .sales-uom-row select:focus) {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgb(8 127 131 / 11%);
+    outline: 0;
+}
+
+body :is(.order-search label, .order-fields label, .customer-search label, .customer-fields label,
+    .category-picker, .search-field, .profile-fields label, .image-fields label, .sales-uom-row label) {
+    color: var(--text-secondary);
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .widget:has(table)) {
+    overflow-x: auto;
+    scrollbar-color: #bdceca transparent;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame) table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame) thead {
+    background: #f6f9f8;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame) th {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame) td,
+body :is(.orders-table-frame, .customer-table-frame, .table-frame) th {
+    border-bottom-color: var(--border);
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame) tbody tr:nth-child(odd) {
+    background: #f8faf9;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame) tbody tr:hover {
+    background: #eaf5f3;
+}
+
+body :is(.order-status, .status) {
+    background: var(--brand-soft);
+    border-radius: 999px;
+    color: var(--brand-strong);
+    font-weight: 600;
+    padding: 4px 9px;
+}
+
+body .order-status.closed-status {
+    background: #edf1f0;
+    color: var(--text-secondary);
+}
+
+body .status.disabled-status {
+    background: #fae8e6;
+    color: var(--danger);
+}
+
+body :is(.dialog-backdrop) {
+    background: rgb(18 36 39 / 48%);
+    backdrop-filter: blur(3px);
+    padding: 16px;
+}
+
+body :is(.customer-tabs, .item-tabs) {
+    background: var(--surface);
+    border-bottom-color: var(--border);
+}
+
+body :is(.customer-tabs button, .item-tabs button) {
+    color: var(--brand-strong);
+}
+
+body :is(.customer-tabs button.active, .item-tabs button.active) {
+    border-bottom-color: var(--brand);
+}
+
+body :is(.empty-state, .status-message, .state-message, .dashboard-status) {
+    color: var(--text-secondary);
+}
+
+body .widget {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body .widget header {
+    background: var(--surface-soft);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 10px 14px;
+}
+
+body .metric > strong {
+    color: var(--brand-strong);
+    font-size: 30px;
+    font-weight: 600;
+}
+
+body .metric > span,
+body .widget small,
+body .item-identifier,
+body .field-hint {
+    color: var(--text-muted);
+}
+
+body .sales-trend-widget {
+    grid-column: span 2;
+    min-height: 340px;
+}
+
+body .sales-trend-widget .trend-heading {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    justify-content: space-between;
+    min-height: 62px;
+    padding: 10px 16px;
+}
+
+body .trend-heading > div:first-child {
+    display: grid;
+    gap: 3px;
+}
+
+body .trend-heading b {
+    font-size: 14px;
+}
+
+body .trend-ranges {
+    background: #edf3f2;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+}
+
+body .trend-ranges button {
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    min-height: 30px;
+    min-width: 40px;
+}
+
+body .trend-ranges button.active,
+body .trend-ranges button:hover {
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgb(26 53 56 / 12%);
+    color: var(--brand-strong);
+}
+
+body .trend-summary {
+    align-items: baseline;
+    display: flex;
+    gap: 28px;
+    padding: 14px 18px 0;
+}
+
+body .trend-summary div {
+    display: grid;
+    gap: 2px;
+}
+
+body .trend-summary strong {
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 650;
+}
+
+body .trend-summary span,
+body .trend-detail,
+body .trend-axis {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+body .trend-chart {
+    padding: 4px 16px 0;
+}
+
+body .trend-chart svg {
+    display: block;
+    height: 190px;
+    overflow: visible;
+    width: 100%;
+}
+
+body .trend-grid {
+    fill: none;
+    stroke: var(--border);
+    stroke-dasharray: 3 5;
+    stroke-width: 1;
+}
+
+body .trend-area {
+    fill: url(#sales-trend-fill);
+}
+
+body .trend-line {
+    fill: none;
+    stroke: var(--brand);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+}
+
+body .trend-point {
+    cursor: crosshair;
+    fill: var(--brand);
+    stroke: #fff;
+    stroke-width: 2;
+    transition: r 120ms ease, fill 120ms ease;
+    vector-effect: non-scaling-stroke;
+}
+
+body .trend-point:hover,
+body .trend-point:focus,
+body .trend-point.selected {
+    fill: #d17a3b;
+    outline: none;
+    r: 7;
+}
+
+body .trend-axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2px;
+}
+
+body .trend-detail {
+    align-items: center;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    margin: 10px 16px 0;
+    min-height: 35px;
+    padding-top: 6px;
+}
+
+body .trend-detail strong {
+    color: var(--text-primary);
+}
+
+body .trend-empty {
+    color: var(--text-muted);
+    padding: 50px 0;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    body :is(.customer-tools, .order-tools, .search-panel) {
+        gap: 14px;
+        margin: 16px;
+        padding: 16px;
+    }
+
+    body :is(.customer-table-frame, .orders-table-frame, .table-frame) {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+}
+
+@media (max-width: 700px) {
+    body :is(.shell, .customers-shell, .items-shell, .orders-shell) {
+        min-height: 100dvh;
+    }
+
+    body :is(.order-tools, .customer-tools, .search-panel) {
+        margin: 12px;
+        padding: 14px;
+    }
+
+    body :is(.orders-table-frame, .customer-table-frame, .table-frame) {
+        margin-left: 12px;
+        margin-right: 12px;
+    }
+
+    body :is(.order-dialog, .tool-dialog, .customer-dialog, .new-item-dialog) {
+        max-height: calc(100dvh - 20px);
+        width: calc(100vw - 20px);
+    }
+
+    body :is(.order-dialog .dialog-actions, .customer-dialog .dialog-actions, .new-item-actions) {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    body :is(.order-dialog .dialog-actions button, .customer-dialog .dialog-actions button, .new-item-actions button) {
+        flex: 1 1 120px;
+        min-width: 0;
+    }
+
+    body .new-item-actions {
+        height: auto;
+        min-height: 58px;
+    }
+
+    body .sales-trend-widget {
+        grid-column: 1;
+    }
+
+    body .sales-trend-widget .trend-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    body .trend-chart svg {
+        height: 170px;
+    }
+
+    body .trend-summary {
+        gap: 20px;
+        padding-left: 14px;
+    }
+
+    body .trend-chart {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+    }
 }

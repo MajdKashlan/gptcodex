@@ -130,16 +130,17 @@ export class OrdersService {
   }
 
   listByView(view: SalesListView, query = '', pageSize = 20): Observable<SalesListRow[]> {
+    const fetchLimit = Math.max(pageSize * 5, 200);
     const salesOrders = () => this.listSalesRows(
-      'Sales Order', 'Order', 'transaction_date', 'delivery_date', ['customer', 'customer_name'], query, pageSize,
+      'Sales Order', 'Order', 'transaction_date', 'delivery_date', ['customer', 'customer_name'], query, fetchLimit,
       view === 'customer-orders' ? [['Sales Order', 'order_type', '=', 'Shopping Cart']] : [],
     );
     const invoices = (returns: 0 | 1 | null) => this.listSalesRows(
-      'Sales Invoice', 'Invoice', 'posting_date', 'due_date', ['customer', 'customer_name'], query, pageSize,
+      'Sales Invoice', 'Invoice', 'posting_date', 'due_date', ['customer', 'customer_name'], query, fetchLimit,
       returns === null ? [] : [['Sales Invoice', 'is_return', '=', returns]],
     );
     const quotes = () => this.listSalesRows(
-      'Quotation', 'Quote', 'transaction_date', 'valid_till', ['party_name', 'customer_name'], query, pageSize,
+      'Quotation', 'Quote', 'transaction_date', 'valid_till', ['party_name', 'customer_name'], query, fetchLimit,
     );
 
     switch (view) {
@@ -155,8 +156,7 @@ export class OrdersService {
       case 'all':
         return forkJoin({ orders: salesOrders(), invoices: invoices(null), quotes: quotes() }).pipe(
           map(({ orders, invoices: invoiceRows, quotes: quoteRows }) => [...orders, ...invoiceRows, ...quoteRows]
-            .sort((left, right) => (right.modified ?? '').localeCompare(left.modified ?? ''))
-            .slice(0, pageSize)),
+            .sort((left, right) => (right.modified ?? '').localeCompare(left.modified ?? ''))),
         );
     }
   }

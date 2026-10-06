@@ -10,12 +10,17 @@ import { finalize, fromEvent, merge, startWith, switchMap, timer } from 'rxjs';
 import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { PageTopbarAction, PageTopbarComponent } from '../../shared/components/page-topbar/page-topbar.component';
-import { DashboardData, HomeDashboardService } from './home-dashboard.service';
+import { DashboardData, DashboardTrendPoint, HomeDashboardService } from './home-dashboard.service';
 
 interface QuickAction {
   title: string;
   description: string;
   symbol: string;
+}
+
+interface DashboardChartPoint extends DashboardTrendPoint {
+  x: number;
+  y: number;
 }
 
 @Component({
@@ -52,6 +57,8 @@ export class HomeComponent implements OnInit {
   protected readonly passwordError = signal<string | null>(null);
   protected readonly passwordSuccess = signal(false);
   protected readonly dashboardLoading = signal(true);
+  protected readonly trendRange = signal<7 | 30 | 90>(30);
+  protected readonly activeTrendPoint = signal<DashboardTrendPoint | null>(null);
   protected readonly dashboardError = signal<string | null>(null);
   protected readonly logoutError = signal<string | null>(null);
   protected readonly logoutConfirmationOpen = signal(false);
@@ -65,6 +72,7 @@ export class HomeComponent implements OnInit {
     itemCount: 0,
     topCustomers: [],
     popularItems: [],
+    salesTrend: [],
     unavailableResources: [],
   });
   protected readonly today = new Intl.DateTimeFormat('en', {
@@ -72,6 +80,23 @@ export class HomeComponent implements OnInit {
     month: 'long',
     day: 'numeric',
   }).format(new Date());
+  protected readonly chartPoints = computed<DashboardChartPoint[]>(() => {
+    const points = this.dashboard().salesTrend.slice(-this.trendRange());
+    const max = Math.max(1, ...points.map((point) => point.total));
+    return points.map((point, index) => ({
+      ...point,
+      x: points.length < 2 ? 360 : 32 + index * (656 / (points.length - 1)),
+      y: 218 - point.total / max * 164,
+    }));
+  });
+  protected readonly chartLine = computed(() => this.chartPoints().map((point) => `${point.x},${point.y}`).join(' '));
+  protected readonly chartArea = computed(() => {
+    const points = this.chartPoints();
+    if (!points.length) return '';
+    return `M ${points[0].x},218 L ${points.map((point) => `${point.x},${point.y}`).join(' L ')} L ${points[points.length - 1].x},218 Z`;
+  });
+  protected readonly trendTotal = computed(() => this.chartPoints().reduce((total, point) => total + point.total, 0));
+  protected readonly trendOrderCount = computed(() => this.chartPoints().reduce((total, point) => total + point.orderCount, 0));
 
   protected readonly quickActions: QuickAction[] = [
     { title: 'New sales order', description: 'Create an order for a customer', symbol: '+' },
@@ -133,6 +158,15 @@ export class HomeComponent implements OnInit {
       style: 'currency',
       currency: 'USD',
     }).format(value);
+  }
+
+  protected setTrendRange(range: 7 | 30 | 90): void {
+    this.trendRange.set(range);
+    this.activeTrendPoint.set(null);
+  }
+
+  protected inspectTrendPoint(point: DashboardTrendPoint): void {
+    this.activeTrendPoint.set(point);
   }
 
   protected handleTopbarAction(actionId: string): void {
