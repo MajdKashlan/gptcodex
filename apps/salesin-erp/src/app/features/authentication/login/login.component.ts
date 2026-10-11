@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { ErpNextAuthService } from '../../../core/auth/erpnext-auth.service';
+import { hasSessionHint } from '../../../core/auth/session-hint';
 
 type LoginMode = 'api-token' | 'password';
 
@@ -48,6 +49,15 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
       void this.router.navigate(['/']);
+      return;
+    }
+
+    // Only ask ERPNext whether a session exists when this browser has signed in
+    // before. Otherwise an anonymous visitor triggers an API call - and a 403 in
+    // the console - before having done anything.
+    if (!hasSessionHint()) {
+      // checkingSession gates the form, so it must be cleared on this path too.
+      this.checkingSession.set(false);
       return;
     }
 

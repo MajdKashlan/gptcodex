@@ -1,4 +1,4 @@
-import { HttpClient, HttpContext } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { ERP_NEXT_CONFIG } from '../config/erpnext.config';
@@ -15,6 +15,7 @@ import {
   SKIP_ERP_NEXT_AUTH,
   SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER,
 } from './auth.context';
+import { forgetSessionHint, rememberSessionHint } from './session-hint';
 
 @Injectable({ providedIn: 'root' })
 export class ErpNextAuthService {
@@ -65,6 +66,7 @@ export class ErpNextAuthService {
     return this.getUserProfile().pipe(
       tap((user) => {
         this.removeLegacyRememberedCredentials();
+        rememberSessionHint();
         this.authState.set({ mode: 'api-token', user });
       }),
       map((user) => user.fullName),
@@ -91,7 +93,10 @@ export class ErpNextAuthService {
       )
       .pipe(
         switchMap(() => this.getUserProfile(true)),
-        tap((user) => this.authState.set({ mode: 'session', user })),
+        tap((user) => {
+          rememberSessionHint();
+          this.authState.set({ mode: 'session', user });
+        }),
         map((user) => user.fullName),
       );
   }
@@ -100,7 +105,14 @@ export class ErpNextAuthService {
     return this.getUserProfile(true).pipe(
       tap((user) => this.authState.set({ mode: 'session', user })),
       map((user) => user.fullName),
-      catchError(() => {
+      catchError((error: unknown) => {
+        if (
+          error instanceof HttpErrorResponse &&
+          (error.status === 401 || error.status === 403)
+        ) {
+          // Definitive answer: the stored session is gone, so stop asking next time.
+          forgetSessionHint();
+        }
         this.clearAuthentication();
         return throwError(() => new Error('No active ERPNext session.'));
       }),
@@ -121,7 +133,10 @@ export class ErpNextAuthService {
           .set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
       })
       .pipe(
-        tap(() => this.clearAuthentication()),
+        tap(() => {
+          this.clearAuthentication();
+          forgetSessionHint();
+        }),
         map(() => undefined),
       );
   }
@@ -152,6 +167,7 @@ export class ErpNextAuthService {
 
   handleUnauthorized(): void {
     this.clearAuthentication();
+    forgetSessionHint();
   }
 
   private removeLegacyRememberedCredentials(): void {

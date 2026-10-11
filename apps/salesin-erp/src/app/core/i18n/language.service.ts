@@ -22,8 +22,13 @@ export class LanguageService {
   readonly isRtl = computed(() => this.direction() === 'rtl');
 
   constructor() {
-    // Keep <html lang> and <html dir> in step; index.html defaults to Arabic so
-    // there is no left-to-right flash before the app boots.
+    // Applied synchronously as well as through the effect. Direction and language
+    // are document-level state, and a route that never injects this service (the
+    // login page) would otherwise inherit whatever dir a previously rendered page
+    // left on <html> - which is exactly how /login ended up rendering LTR.
+    this.applyToDocument(this.language());
+
+    // Keep <html lang>/<html dir> in step when the user switches language.
     effect(() => {
       this.applyToDocument(this.language());
     });
@@ -39,7 +44,7 @@ export class LanguageService {
   }
 
   toggle(): void {
-    this.setLanguage(this.language() === 'ar' ? 'en' : 'ar');
+    this.setLanguage(this.language() === 'en' ? 'ar' : 'en');
   }
 
   /** Resolves a key, falling back to English and finally to the key itself. */
@@ -57,7 +62,7 @@ export class LanguageService {
     } catch {
       // Ignore and fall through to the default.
     }
-    return 'ar';
+    return 'en';
   }
 
   private applyToDocument(language: AppLanguage): void {
