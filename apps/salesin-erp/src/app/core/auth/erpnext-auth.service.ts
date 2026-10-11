@@ -28,20 +28,21 @@ export class ErpNextAuthService {
   readonly isAuthenticated = computed(() => this.authState().mode !== 'anonymous');
   readonly currentUser = computed(() => this.authState().user);
 
+  /** `''` for same-origin (reverse-proxied), or an explicit ERPNext origin. */
+  private get apiOrigin(): string {
+    return this.config.baseUrl.replace(/\/+$/, '');
+  }
+
   apiUrl(path: string): string {
-    const apiPath = '/' + path.replace(/^\//, '');
-    return this.usesLocalApiProxy()
-      ? apiPath
-      : this.config.baseUrl.replace(/\/$/, '') + apiPath;
+    return this.apiOrigin + '/' + path.replace(/^\/+/, '');
   }
 
   isErpNextApiUrl(url: string): boolean {
-    return url.startsWith('/api/') || url.startsWith(this.config.baseUrl.replace(/\/$/, ''));
-  }
-
-  private usesLocalApiProxy(): boolean {
-    return typeof globalThis.location !== 'undefined' &&
-      ['localhost', '127.0.0.1', '::1'].includes(globalThis.location.hostname);
+    if (url.startsWith('/api/')) {
+      return true;
+    }
+    const origin = this.apiOrigin;
+    return origin !== '' && url.startsWith(origin);
   }
 
   authorizationHeader(): string | null {
@@ -195,12 +196,9 @@ export class ErpNextAuthService {
             map((response) => ({
               username,
               fullName: response.data?.full_name?.trim() || username,
-              imageUrl: response.data?.user_image
-                ? new URL(
-                    response.data.user_image,
-                    this.config.baseUrl,
-                  ).toString()
-                : null,
+              // Left exactly as the server returned it: a relative /files/... path
+              // then resolves against the current origin and is reverse-proxied.
+              imageUrl: response.data?.user_image ?? null,
             })),
             catchError(() => of({ username, fullName: username, imageUrl: null })),
           ),
