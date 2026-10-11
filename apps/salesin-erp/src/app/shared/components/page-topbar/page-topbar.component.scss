@@ -15,10 +15,46 @@
   padding: 0 24px;
 }
 
+.topbar-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+
+.navigation-toggle,
+.sidebar-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 40px;
+  font: inherit;
+  height: 40px;
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+}
+
+.navigation-toggle {
+  border-radius: 6px;
+  font-size: 22px;
+}
+
+.navigation-toggle:hover {
+  background: rgb(255 255 255 / 14%);
+}
+
 .topbar h1 {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
+  max-width: min(70vw, 600px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-menu {
@@ -73,7 +109,7 @@
   min-width: 156px;
   padding: 5px;
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: 100%;
   z-index: 4;
 }
@@ -99,11 +135,22 @@
 @media (max-width: 650px) {
   .topbar {
     height: 58px;
-    padding: 0 14px;
+    padding: 0 10px;
+  }
+
+  .topbar-heading {
+    gap: 6px;
+  }
+
+  .navigation-toggle {
+    flex-basis: 38px;
+    height: 38px;
+    width: 38px;
   }
 
   .topbar h1 {
-    font-size: 20px;
+    font-size: 18px;
+    max-width: 58vw;
   }
 
   .user-menu-trigger span,

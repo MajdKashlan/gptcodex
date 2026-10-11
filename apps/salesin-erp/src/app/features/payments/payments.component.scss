@@ -392,6 +392,10 @@ tbody tr:hover {
 }
 
 @media (max-width: 700px) {
+  .payments-table-frame {
+    margin: 0 12px 12px;
+  }
+
   .payment-dialog {
     max-height: 90dvh;
     width: 100%;

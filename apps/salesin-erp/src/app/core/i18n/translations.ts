@@ -20,6 +20,8 @@ export const TRANSLATIONS: Readonly<Record<AppLanguage, TranslationBundle>> = {
     'shell.logout': 'Logout',
     'shell.language': 'Language',
     'shell.openUserMenu': 'Open user menu',
+    'shell.openNavigation': 'Open navigation',
+    'shell.closeNavigation': 'Close navigation',
 
     'nav.dashboard': 'Dashboard',
     'nav.appointments': 'Appointments',
@@ -162,6 +164,8 @@ export const TRANSLATIONS: Readonly<Record<AppLanguage, TranslationBundle>> = {
     'shell.logout': 'تسجيل الخروج',
     'shell.language': 'اللغة',
     'shell.openUserMenu': 'فتح قائمة المستخدم',
+    'shell.openNavigation': 'فتح قائمة التنقل',
+    'shell.closeNavigation': 'إغلاق قائمة التنقل',
 
     'nav.dashboard': 'لوحة التحكم',
     'nav.appointments': 'المواعيد',

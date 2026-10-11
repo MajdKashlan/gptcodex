@@ -1,30 +1,36 @@
-<aside class="sidebar">
-  <a class="brand" routerLink="/"><b>S</b> Sales<em>In</em></a>
+<button class="sidebar-backdrop" type="button" tabindex="-1" [attr.aria-label]="i18n.t('shell.closeNavigation')" (click)="sidebarState.close()"></button>
+<aside id="app-sidebar" class="sidebar" [attr.aria-hidden]="!sidebarState.isOpen()" [attr.inert]="sidebarState.isOpen() ? null : ''">
+  <div class="sidebar-heading">
+    <a class="brand" routerLink="/" (click)="sidebarState.close()" aria-label="HMG Trading home">
+      <img src="assets/hmg-trading-logo.png" alt="HMG Trading" />
+    </a>
+    <button class="sidebar-close" type="button" [attr.aria-label]="i18n.t('shell.closeNavigation')" (click)="sidebarState.close()">×</button>
+  </div>
   <nav [attr.aria-label]="i18n.t('shell.mainNavigation')">
-    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">▣ <span>{{ i18n.t('nav.dashboard') }}</span></a>
-    <a href="#">▦ <span>{{ i18n.t('nav.appointments') }}</span></a>
-    <a routerLink="/customers" routerLinkActive="active">♟ <span>{{ i18n.t('nav.customers') }}</span></a>
-    <a routerLink="/items" routerLinkActive="active">▤ <span>{{ i18n.t('nav.items') }}</span></a>
-<a routerLink="/stock" routerLinkActive="active">▥ <span>{{ i18n.t('nav.stock') }}</span></a>
-<a routerLink="/payments" routerLinkActive="active">◈ <span>{{ i18n.t('nav.payments') }}</span></a>
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="sidebarState.close()">▣ <span>{{ i18n.t('nav.dashboard') }}</span></a>
+    <a href="#" (click)="sidebarState.close()">▦ <span>{{ i18n.t('nav.appointments') }}</span></a>
+    <a routerLink="/customers" routerLinkActive="active" (click)="sidebarState.close()">♟ <span>{{ i18n.t('nav.customers') }}</span></a>
+    <a routerLink="/items" routerLinkActive="active" (click)="sidebarState.close()">▤ <span>{{ i18n.t('nav.items') }}</span></a>
+    <a routerLink="/stock" routerLinkActive="active" (click)="sidebarState.close()">▥ <span>{{ i18n.t('nav.stock') }}</span></a>
+    <a routerLink="/payments" routerLinkActive="active" (click)="sidebarState.close()">◈ <span>{{ i18n.t('nav.payments') }}</span></a>
     <button class="sales-nav-toggle" type="button" [attr.aria-expanded]="salesExpanded()" (click)="salesExpanded.set(!salesExpanded())">
       <span class="nav-icon" aria-hidden="true">🛒</span><span>{{ i18n.t('nav.sales') }}</span><span class="nav-chevron" [class.expanded]="salesExpanded()" aria-hidden="true">›</span>
     </button>
     @if (salesExpanded()) {
       <div class="sales-subnav" [attr.aria-label]="i18n.t('shell.salesPages')">
-        <a routerLink="/sales" [queryParams]="{ view: 'all' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.allSales') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'credit-notes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.creditNotes') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'customer-orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.customerOrders') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'invoices' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.invoices') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.orders') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'quotes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }">{{ i18n.t('nav.quotes') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'all' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.allSales') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'credit-notes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.creditNotes') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'customer-orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.customerOrders') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'invoices' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.invoices') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.orders') }}</a>
+        <a routerLink="/sales" [queryParams]="{ view: 'quotes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.quotes') }}</a>
       </div>
     }
-    <a href="#">▧ <span>{{ i18n.t('nav.reports') }}</span></a>
-    <a href="#">▣ <span>{{ i18n.t('nav.b2b') }}</span></a>
-    <a href="#">⚙ <span>{{ i18n.t('nav.administration') }}</span></a>
-    <a href="#">! <span>{{ i18n.t('nav.feedback') }}</span></a>
-    <a href="#">? <span>{{ i18n.t('nav.help') }}</span></a>
+    <a href="#" (click)="sidebarState.close()">▧ <span>{{ i18n.t('nav.reports') }}</span></a>
+    <a href="#" (click)="sidebarState.close()">▣ <span>{{ i18n.t('nav.b2b') }}</span></a>
+    <a href="#" (click)="sidebarState.close()">⚙ <span>{{ i18n.t('nav.administration') }}</span></a>
+    <a href="#" (click)="sidebarState.close()">! <span>{{ i18n.t('nav.feedback') }}</span></a>
+    <a href="#" (click)="sidebarState.close()">? <span>{{ i18n.t('nav.help') }}</span></a>
   </nav>
   <div class="sidebar-user">
     @if (userImage(); as image) {

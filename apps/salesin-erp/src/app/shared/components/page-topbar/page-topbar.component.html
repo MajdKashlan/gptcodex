@@ -1,5 +1,17 @@
 <header class="topbar">
-  <h1>{{ title() }}</h1>
+  <div class="topbar-heading">
+    <button
+      class="navigation-toggle"
+      type="button"
+      [attr.aria-label]="i18n.t(sidebarState.isOpen() ? 'shell.closeNavigation' : 'shell.openNavigation')"
+      [attr.aria-expanded]="sidebarState.isOpen()"
+      aria-controls="app-sidebar"
+      (click)="sidebarState.toggle()"
+    >
+      <span aria-hidden="true">☰</span>
+    </button>
+    <h1>{{ title() }}</h1>
+  </div>
   <div class="user-menu">
     <button
       class="user-menu-trigger"

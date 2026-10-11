@@ -1,40 +1,98 @@
 :host {
-  background: var(--sidebar-bg);
-  display: flex;
-  flex: 0 0 208px;
-  flex-direction: column;
+  display: block;
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 100;
+}
+
+:host(.is-open) {
+  pointer-events: auto;
+}
+
+.sidebar-backdrop {
+  background: rgb(15 23 35 / 48%);
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity 220ms ease;
+  width: 100%;
+}
+
+:host(.is-open) .sidebar-backdrop {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar {
+  background: var(--sidebar-bg);
+  bottom: 0;
+  box-shadow: 0 12px 34px rgb(0 0 0 / 24%);
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
+  inset-inline-start: 0;
+  max-width: 86vw;
+  overflow-y: auto;
+  position: fixed;
+  top: 0;
+  transform: translateX(-105%);
+  transition: transform 220ms ease;
+  width: 280px;
+  z-index: 1;
+}
+
+:host(.is-open) .sidebar {
+  transform: translateX(0);
+}
+
+.sidebar:dir(rtl) {
+  transform: translateX(105%);
+}
+
+:host(.is-open) .sidebar:dir(rtl) {
+  transform: translateX(0);
+}
+
+.sidebar-heading {
+  align-items: center;
+  border-bottom: 1px solid #474E60;
+  display: flex;
+  min-height: 60px;
 }
 
 .brand {
   align-items: center;
-  border-bottom: 1px solid #474E60;
-  color: #fff;
   display: flex;
-  font-size: 18px;
-  font-weight: bold;
-  gap: 7px;
-  height: 60px;
-  padding-left: 18px;
+  flex: 1 1 auto;
+  height: 68px;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 18px;
   text-decoration: none;
 }
 
-.brand b {
-  background: var(--brand);
-  border: 0;
-  border-radius: 6px;
-  font-size: 16px;
-  padding: 3px 7px;
+.brand img {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
 }
 
-.brand em {
-  font-size: 16px;
-  font-weight: normal;
+.sidebar-close {
+  color: #fff;
+  flex: 0 0 44px;
+  font-size: 28px;
+  height: 44px;
+  margin-inline-end: 8px;
+  width: 44px;
+}
+
+.sidebar-close:hover {
+  background: var(--sidebar-hover);
+  border-radius: 6px;
 }
 
 nav {
@@ -68,7 +126,7 @@ nav a {
   margin: 2px 9px;
   min-height: 43px;
   padding: 7px 12px;
-  text-align: left;
+  text-align: start;
   width: calc(100% - 18px);
 }
 
@@ -82,7 +140,7 @@ nav a {
 
 .nav-chevron {
   font-size: 20px;
-  margin-left: auto;
+  margin-inline-start: auto;
   transform: rotate(0);
   transition: transform 120ms ease;
 }
@@ -102,9 +160,11 @@ nav a {
   display: flex;
   font-size: 13px;
   border-radius: 5px;
-  margin: 1px 9px 1px 18px;
+  margin: 1px 9px;
+  margin-inline-start: 18px;
   min-height: 40px;
-  padding: 7px 8px 7px 38px;
+  padding: 7px 8px;
+  padding-inline-start: 38px;
   position: relative;
   text-decoration: none;
 }
@@ -112,7 +172,7 @@ nav a {
 .sales-subnav a::before {
   content: '›';
   font-size: 20px;
-  left: 14px;
+  inset-inline-start: 14px;
   position: absolute;
 }
 
@@ -186,55 +246,16 @@ nav a.active,
   background: var(--sidebar-hover);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-backdrop {
+    transition-duration: .01ms;
+  }
+}
+
+/* The drawer remains full-size on small screens; it never leaves an icon rail. */
 @media (max-width: 700px) {
-  :host {
-    flex-basis: 58px;
-  }
-
-  .brand {
-    font-size: 0;
-    justify-content: center;
-    padding: 0;
-  }
-
-  .brand em,
-  .sidebar-user {
-    display: none;
-  }
-
-  nav a {
-    justify-content: center;
-    padding: 8px;
-  }
-
-  .sales-nav-toggle {
-    justify-content: center;
-    padding: 8px;
-    width: calc(100% - 18px);
-  }
-
-  :host(.sales-expanded) {
-    bottom: 0;
-    flex: 0 0 210px;
-    left: 0;
-    position: absolute;
-    top: 0;
-    width: 210px;
-    z-index: 5;
-  }
-
-  :host(.sales-expanded) .sales-nav-toggle {
-    justify-content: flex-start;
-    padding: 7px 13px;
-  }
-
-  :host(:not(.sales-expanded)) .sales-nav-toggle > span:nth-child(2),
-  :host(:not(.sales-expanded)) .sales-nav-toggle .nav-chevron,
-  :host(:not(.sales-expanded)) .sales-subnav {
-    display: none;
-  }
-
-  nav a span {
-    display: none;
+  .sidebar {
+    width: min(280px, 86vw);
   }
 }

@@ -76,10 +76,14 @@ button:active:not(:disabled) {
     color: #17383a;
 }
 
-body :is(.shell, .customers-shell, .items-shell, .orders-shell, .stock-shell) {
+body :is(.shell, .customers-shell, .items-shell, .orders-shell, .stock-shell, .payments-shell) {
     background: var(--app-bg);
     color: var(--text-primary);
     position: relative;
+}
+
+body :is(.page, .customers-page, .items-page, .orders-page, .stock-page, .payments-page) {
+    min-width: 0;
 }
 
 body :is(.customer-tools, .order-tools, .search-panel) {
@@ -442,8 +446,9 @@ body .trend-empty {
 }
 
 @media (max-width: 700px) {
-    body :is(.shell, .customers-shell, .items-shell, .orders-shell) {
+    body :is(.shell, .customers-shell, .items-shell, .orders-shell, .stock-shell, .payments-shell) {
         min-height: 100dvh;
+        width: 100%;
     }
 
     body :is(.order-tools, .customer-tools, .search-panel) {
@@ -451,23 +456,23 @@ body .trend-empty {
         padding: 14px;
     }
 
-    body :is(.orders-table-frame, .customer-table-frame, .table-frame) {
+    body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame, .payments-table-frame) {
         margin-left: 12px;
         margin-right: 12px;
     }
 
-    body :is(.order-dialog, .tool-dialog, .customer-dialog, .new-item-dialog) {
+    body :is(.order-dialog, .tool-dialog, .customer-dialog, .new-item-dialog, .stock-dialog, .payment-dialog) {
         max-height: calc(100dvh - 20px);
         width: calc(100vw - 20px);
     }
 
-    body :is(.order-dialog .dialog-actions, .customer-dialog .dialog-actions, .new-item-actions) {
+    body :is(.order-dialog .dialog-actions, .customer-dialog .dialog-actions, .new-item-actions, .stock-dialog .dialog-actions, .payment-dialog .dialog-actions) {
         flex-wrap: wrap;
         gap: 8px;
         padding: 10px;
     }
 
-    body :is(.order-dialog .dialog-actions button, .customer-dialog .dialog-actions button, .new-item-actions button) {
+    body :is(.order-dialog .dialog-actions button, .customer-dialog .dialog-actions button, .new-item-actions button, .stock-dialog .dialog-actions button, .payment-dialog .dialog-actions button) {
         flex: 1 1 120px;
         min-width: 0;
     }
@@ -500,6 +505,7 @@ body .trend-empty {
         padding-left: 10px;
         padding-right: 10px;
     }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
