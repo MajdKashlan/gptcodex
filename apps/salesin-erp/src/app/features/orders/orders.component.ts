@@ -37,6 +37,7 @@ export class OrdersComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly workflowBusyName = signal<string | null>(null);
   protected readonly loadingOrder = signal(false);
+  protected readonly pdfBusy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly formError = signal<string | null>(null);
   protected readonly toolError = signal<string | null>(null);
@@ -255,15 +256,27 @@ export class OrdersComponent implements OnInit {
   }
 
   protected downloadPdf(): void {
-    const rows = this.selectedOrders();
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      this.toolMessage.set('Allow pop-ups to print the selected sales orders as PDF.');
+    const [order] = this.selectedOrders();
+    if (!order || this.selectedOrders().length !== 1 || this.pdfBusy()) {
       return;
     }
-    const body = rows.map((order) => `<tr><td>${this.escapeHtml(order.name)}</td><td>${this.escapeHtml(order.customer_name || order.customer)}</td><td>${this.escapeHtml(order.transaction_date)}</td><td>${this.escapeHtml(order.status ?? '')}</td><td>${this.escapeHtml(this.formatCurrency(order.grand_total, order.currency))}</td></tr>`).join('');
-    printWindow.document.write(`<html><head><title>Sales Orders</title><style>body{font:14px Arial,sans-serif;padding:24px}h1{font-size:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#eef3f5}@media print{body{padding:0}}</style></head><body><h1>Sales Orders</h1><table><thead><tr><th>Sale ID</th><th>Customer</th><th>Order Date</th><th>Status</th><th>Total</th></tr></thead><tbody>${body}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`);
-    printWindow.document.close();
+    this.pdfBusy.set(true);
+    this.toolMessage.set(null);
+    this.ordersService.downloadSalesDocumentPdf(order.doctype, order.name)
+      .pipe(finalize(() => this.pdfBusy.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (pdf) => {
+          const url = URL.createObjectURL(pdf);
+          const link = document.createElement('a');
+          const prefix = order.doctype === 'Sales Invoice' ? 'invoice' : 'sales-document';
+          link.href = url;
+          link.download = `${prefix}-${order.name.replace(/[<>:"/\\|?*]/g, '-')}.pdf`;
+          link.click();
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          this.toolMessage.set(`${order.documentType} ${order.name} PDF downloaded.`);
+        },
+        error: (error: unknown) => this.toolMessage.set(this.errorMessage(error)),
+      });
   }
 
   protected emailSelected(): void {
@@ -737,7 +750,7 @@ export class OrdersComponent implements OnInit {
         return 'ERPNext could not complete this sales order operation.';
       }
     }
-    return details.error?.message ?? 'ERPNext could not complete this sales order operation.';
+    return details.error?.message ?? 'ERPNext could not complete this sales document operation.';
   }
 
 }

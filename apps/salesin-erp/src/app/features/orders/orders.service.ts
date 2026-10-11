@@ -205,6 +205,17 @@ export class OrdersService {
     ).pipe(map((response) => response.data));
   }
 
+  downloadSalesDocumentPdf(doctype: string, name: string): Observable<Blob> {
+    const params = new HttpParams()
+      .set('doctype', doctype)
+      .set('name', name);
+    return this.http.get(this.auth.apiUrl('/api/method/frappe.utils.print_format.download_pdf'), {
+      params,
+      withCredentials: true,
+      responseType: 'blob',
+    });
+  }
+
   updateSalesDocument(
     type: SalesDocumentType,
     doctype: string,

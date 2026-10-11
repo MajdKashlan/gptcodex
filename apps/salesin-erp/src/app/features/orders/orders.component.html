@@ -66,7 +66,7 @@
             <path d="M14 4.5v4h4M8 12h8M8 15h8" />
           </svg>
         </button>
-        <button class="tool-button pdf-tool" type="button" [disabled]="!selectedOrders().length" (click)="downloadPdf()" aria-label="Download PDF" title="Print or save selected orders as PDF">
+        <button class="tool-button pdf-tool" type="button" [disabled]="selectedOrders().length !== 1 || pdfBusy()" (click)="downloadPdf()" [attr.aria-label]="selectedOrders()[0]?.doctype === 'Sales Invoice' ? 'Download selected invoice as PDF' : 'Download selected sales document as PDF'" [title]="selectedOrders().length > 1 ? 'Select one sales document to download its PDF' : 'Download selected sales document as PDF'">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 3.5h7l4 4v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-14a2 2 0 0 1 2-2Z" />
             <path d="M14 3.5v4h4M8.5 13.5h7M8.5 16.5h7" />
