@@ -1,0 +1,25 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: salesin-erp-web:latest
+    container_name: salesin-web
+    restart: unless-stopped
+    ports:
+      # Loopback only: aaPanel's nginx terminates TLS and forwards here.
+      - "127.0.0.1:8081:80"
+    environment:
+      # Where /api, /files, /private and /socket.io are forwarded.
+      #
+      # Default: the public hostname. Works from anywhere, including a container.
+      ERPNEXT_UPSTREAM: "https://erp.hmgtr.com"
+      #
+      # Same-host alternative. If ERPNext's nginx is published on host port 8080,
+      # this avoids sending traffic out to the public IP and back in (NAT hairpin),
+      # which some firewalls block:
+      # ERPNEXT_UPSTREAM: "http://host.docker.internal:8080"
+      ERPNEXT_HOST: "erp.hmgtr.com"
+    # Lets the container reach services published on the aaPanel host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

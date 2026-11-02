@@ -1,0 +1,10 @@
+# Build context for the image. Without this, `docker compose build` uploads
+# node_modules (244 MB here) and dist to the Docker daemon on every build.
+node_modules
+dist
+.angular
+.git
+.github
+.vscode
+ssl
+*.log
