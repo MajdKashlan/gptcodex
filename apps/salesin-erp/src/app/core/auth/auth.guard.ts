@@ -13,7 +13,7 @@ import { hasSessionHint } from './session-hint';
  * lands on the login page immediately, instead of briefly mounting a feature screen
  * it is not allowed to see.
  */
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(ErpNextAuthService);
   const router = inject(Router);
 
@@ -21,13 +21,18 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
+  const loginUrl = () =>
+    router.createUrlTree(['/login'], {
+      queryParams: state.url && state.url !== '/' ? { returnUrl: state.url } : {},
+    });
+
   if (!hasSessionHint()) {
-    return router.createUrlTree(['/login']);
+    return loginUrl();
   }
 
   return auth.restoreSession().pipe(
     map(() => true),
-    catchError(() => of(router.createUrlTree(['/login']))),
+    catchError(() => of(loginUrl())),
   );
 };
 

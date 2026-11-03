@@ -13,7 +13,12 @@ export interface SalesOrderItem {
   conversion_factor?: number;
   qty: number;
   rate: number;
+  price_list_rate?: number;
+  stock_qty?: number;
   amount?: number;
+  net_amount?: number;
+  delivered_qty?: number;
+  billed_amt?: number;
   base_rate?: number;
   base_amount?: number;
   discount_percentage?: number;

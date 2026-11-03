@@ -1,0 +1,167 @@
+<div class="doc-page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/sales" [queryParams]="{ view: 'all' }">Sales</a>
+    <span aria-hidden="true">›</span>
+    <span>{{ typeLabel() || doctype() }}</span>
+  </nav>
+
+  @if (loading() && !doc()) {
+    <p class="status-message" role="status">Loading {{ name() }}…</p>
+  } @else if (error(); as message) {
+    <p class="status-message error-message" role="alert">{{ message }}</p>
+  } @else if (doc(); as d) {
+    <header class="doc-header panel">
+      <div class="doc-title">
+        <span class="doc-kicker">{{ typeLabel() }}</span>
+        <h2>{{ d.name }}</h2>
+        <span class="doc-status" [class.draft]="d.docstatus === 0" [class.closed]="closed()" [class.cancelled]="d.docstatus === 2">{{ status() }}</span>
+      </div>
+      <div class="doc-actions">
+        @if (d.docstatus === 0) {
+          <button type="button" class="primary-button" [disabled]="busy()" (click)="edit()">Edit</button>
+          <button type="button" class="primary-button" [disabled]="busy()" (click)="submit()">Submit</button>
+        }
+        @if (canMakeOrder()) { <button type="button" class="primary-button" [disabled]="busy()" (click)="makeOrder()">Create order</button> }
+        @if (canMakeInvoice()) { <button type="button" class="primary-button" [disabled]="busy()" (click)="makeInvoice()">Create invoice</button> }
+        @if (canPay()) { <button type="button" class="primary-button" [disabled]="busy()" (click)="openPayment()">Record payment</button> }
+        @if (canMakeCreditNote()) { <button type="button" class="secondary-button" [disabled]="busy()" (click)="makeCreditNote()">Credit note</button> }
+        <button type="button" class="secondary-button" [disabled]="busy()" (click)="downloadPdf()">PDF</button>
+        <button type="button" class="secondary-button" [disabled]="busy()" (click)="print()">Print</button>
+        <button type="button" class="secondary-button" [disabled]="busy()" (click)="duplicate()">Duplicate</button>
+        @if (d.docstatus === 1) {
+          <button type="button" class="secondary-button danger-outline" [disabled]="busy()" (click)="cancelDocument()">Cancel</button>
+        }
+        @if (d.docstatus === 0) {
+          <button type="button" class="secondary-button danger-outline" [disabled]="busy()" (click)="deleteDraft()">Delete</button>
+        }
+      </div>
+    </header>
+
+    <section class="doc-summary">
+      <div class="panel info-card">
+        <h3>Customer</h3>
+        <a class="customer-link" [routerLink]="['/customers', d.customer || d.party_name]">{{ d.customer_name || d.customer || d.party_name }}</a>
+        @if (d.contact_display) { <p>{{ d.contact_display }}</p> }
+        @if (d.address_display) { <p class="address">{{ plainAddress(d.address_display) }}</p> }
+        @if (d.po_no) { <p><span class="muted">Customer PO</span> {{ d.po_no }}</p> }
+      </div>
+      <div class="panel info-card">
+        <h3>Details</h3>
+        <dl>
+          <dt>Date</dt><dd>{{ (d.transaction_date || d.posting_date) | appDate }}</dd>
+          <dt>{{ dueLabel() }}</dt><dd>{{ (d.delivery_date || d.due_date || d.valid_till) | appDate }}</dd>
+          <dt>Company</dt><dd>{{ d.company }}</dd>
+          @if (d.selling_price_list) { <dt>Price list</dt><dd>{{ d.selling_price_list }}</dd> }
+          @if (d.set_warehouse) { <dt>Warehouse</dt><dd>{{ d.set_warehouse }}</dd> }
+          @if (d.return_against) { <dt>Return against</dt><dd><a [routerLink]="['/sales', 'Sales Invoice', d.return_against]">{{ d.return_against }}</a></dd> }
+        </dl>
+      </div>
+      <div class="panel info-card totals-card">
+        <h3>Totals</h3>
+        <dl>
+          <dt>Net total</dt><dd>{{ d.net_total | money: d.currency }}</dd>
+          <dt>Taxes</dt><dd>{{ d.total_taxes_and_charges | money: d.currency }}</dd>
+          @if (d.discount_amount) { <dt>Discount</dt><dd>−{{ d.discount_amount | money: d.currency }}</dd> }
+          <dt class="grand">Grand total</dt><dd class="grand">{{ (d.rounded_total || d.grand_total) | money: d.currency }}</dd>
+          @if (d.outstanding_amount != null && doctype() === 'Sales Invoice') {
+            <dt>Outstanding</dt><dd [class.due]="(d.outstanding_amount ?? 0) > 0">{{ d.outstanding_amount | money: d.currency }}</dd>
+          }
+          @if (doctype() === 'Sales Order') {
+            <dt>Advance paid</dt><dd>{{ d.advance_paid | money: d.currency }}</dd>
+          }
+        </dl>
+        @if (doctype() === 'Sales Order' && d.docstatus === 1) {
+          <div class="progress-row"><span>Billed</span><div class="progress"><i [style.width.%]="d.per_billed ?? 0"></i></div><b>{{ (d.per_billed ?? 0) | qty: 0 }}%</b></div>
+          <div class="progress-row"><span>Delivered</span><div class="progress"><i [style.width.%]="d.per_delivered ?? 0"></i></div><b>{{ (d.per_delivered ?? 0) | qty: 0 }}%</b></div>
+        }
+      </div>
+    </section>
+
+    <section class="panel lines">
+      <h3>Items <span class="muted">({{ d.items.length }})</span></h3>
+      <div class="lines-frame">
+        <table class="data-table">
+          <thead>
+            <tr><th>#</th><th>Item</th><th class="num">Qty</th><th>UOM</th><th class="num">Rate</th><th class="num">Discount</th><th class="num">Amount</th></tr>
+          </thead>
+          <tbody>
+            @for (item of d.items; track $index) {
+              <tr>
+                <td class="muted" data-label="#">{{ $index + 1 }}</td>
+                <td class="card-title" data-label="Item"><div class="item-cell"><strong>{{ item.item_name || item.item_code }}</strong><small>{{ item.item_code }}</small></div></td>
+                <td class="num" data-label="Qty">{{ item.qty | qty }}</td>
+                <td data-label="UOM">{{ item.uom }}</td>
+                <td class="num" data-label="Rate">{{ item.rate | money: d.currency }}</td>
+                <td class="num" data-label="Discount">{{ item.discount_percentage ? (item.discount_percentage | qty) + '%' : '—' }}</td>
+                <td class="num cell-strong" data-label="Amount">{{ item.amount | money: d.currency }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (d.taxes?.length) {
+        <h3 class="taxes-title">Taxes and charges</h3>
+        <div class="lines-frame">
+          <table class="data-table">
+            <thead><tr><th>Description</th><th class="num">Rate</th><th class="num">Amount</th><th class="num">Running total</th></tr></thead>
+            <tbody>
+              @for (tax of d.taxes; track $index) {
+                <tr>
+                  <td class="card-title" data-label="Tax">{{ tax.description || tax.account_head }}</td>
+                  <td class="num" data-label="Rate">{{ tax.rate ? (tax.rate | qty) + '%' : '—' }}</td>
+                  <td class="num" data-label="Amount">{{ tax.tax_amount | money: d.currency }}</td>
+                  <td class="num" data-label="Total">{{ tax.total | money: d.currency }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    @if (d.remarks || d.terms) {
+      <section class="panel notes"><h3>Notes</h3><p>{{ d.remarks || d.terms }}</p></section>
+    }
+
+    <section class="panel related">
+      <h3>Related documents</h3>
+      @for (rel of related(); track rel.doctype + rel.name) {
+        <div class="related-row">
+          <span class="muted">{{ rel.label }}</span>
+          @if (rel.link) { <a [routerLink]="['/sales', rel.doctype, rel.name]">{{ rel.name }}</a> } @else { <span>{{ rel.name }}</span> }
+          <span>{{ rel.date | appDate }}</span>
+          <span class="num">{{ rel.amount != null ? (rel.amount | money: rel.currency) : '' }}</span>
+          <span class="muted">{{ rel.status }}</span>
+        </div>
+      } @empty {
+        <p class="muted">No related documents yet.</p>
+      }
+      <p class="meta muted">Created {{ d.creation | appDate: 'datetime' }} by {{ d.owner }} · Last updated {{ d.modified | appDate: 'datetime' }}</p>
+    </section>
+  }
+</div>
+
+@if (paymentOpen()) {
+  <div class="dialog-backdrop" (click)="!busy() && paymentOpen.set(false)">
+    <section class="payment-dialog panel" role="dialog" aria-modal="true" aria-labelledby="doc-payment-title" (click)="$event.stopPropagation()">
+      <header>
+        <h2 id="doc-payment-title">Record payment</h2>
+        <button type="button" class="icon-close" aria-label="Close" [disabled]="busy()" (click)="paymentOpen.set(false)">×</button>
+      </header>
+      <form class="dialog-fields" [formGroup]="paymentForm" (ngSubmit)="savePayment()">
+        <label><span class="label-line">Amount <b class="req" aria-hidden="true">*</b></span><input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="amount" /></label>
+        <label><span class="label-line">Posting date <b class="req" aria-hidden="true">*</b></span><input type="date" formControlName="posting_date" /></label>
+        <label>Mode of payment
+          <select formControlName="mode_of_payment"><option value="">Default account</option>@for (mode of modesOfPayment(); track mode) {<option [value]="mode">{{ mode }}</option>}</select>
+        </label>
+        <label>Reference no.<input formControlName="reference_no" /></label>
+        <label class="field-wide check-field"><input type="checkbox" formControlName="submit_now" /> Submit the payment now</label>
+        @if (paymentError(); as message) { <p class="form-error field-wide" role="alert">{{ message }}</p> }
+        <div class="field-wide dialog-buttons">
+          <button type="button" class="secondary-button" [disabled]="busy()" (click)="paymentOpen.set(false)">Cancel</button>
+          <button type="submit" class="primary-button" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Save payment' }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

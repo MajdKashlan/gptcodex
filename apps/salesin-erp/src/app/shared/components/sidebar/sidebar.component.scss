@@ -48,14 +48,6 @@
   transform: translateX(0);
 }
 
-.sidebar:dir(rtl) {
-  transform: translateX(105%);
-}
-
-:host(.is-open) .sidebar:dir(rtl) {
-  transform: translateX(0);
-}
-
 .sidebar-heading {
   align-items: center;
   border-bottom: 1px solid #474E60;
@@ -82,6 +74,12 @@
 }
 
 .sidebar-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
   color: #fff;
   flex: 0 0 44px;
   font-size: 28px;
@@ -101,6 +99,7 @@ nav {
 
 nav a {
   align-items: center;
+  min-height: 44px;
   color: #ECEFF1;
   display: flex;
   border-radius: 6px;
@@ -156,6 +155,7 @@ nav a {
 
 .sales-subnav a {
   align-items: center;
+  min-height: 44px;
   color: #ECEFF1;
   display: flex;
   font-size: 13px;
@@ -182,8 +182,15 @@ nav a {
   color: #8FE3FF;
 }
 
-nav a span {
-  font-size: 13px;
+nav a span:not(.nav-icon) {
+  font-size: 14px;
+}
+
+.nav-icon {
+  display: inline-flex;
+  font-size: 16px;
+  justify-content: center;
+  width: 20px;
 }
 
 nav a:hover,
@@ -232,6 +239,7 @@ nav a.active,
 }
 
 .sidebar-user button {
+  min-height: 36px;
   background: transparent;
   border: 1px solid #5A6478;
   border-radius: 6px;
@@ -258,4 +266,31 @@ nav a.active,
   .sidebar {
     width: min(280px, 86vw);
   }
+}
+
+/* Docked: part of the page layout on wide screens, never hidden. */
+:host(.docked) {
+  flex: 0 0 248px;
+  height: 100dvh;
+  inset: auto;
+  pointer-events: auto;
+  position: sticky;
+  top: 0;
+  width: 248px;
+  z-index: 3;
+}
+
+:host(.docked) .sidebar {
+  box-shadow: none;
+  height: 100%;
+  max-width: none;
+  position: relative;
+  transform: none;
+  transition: none;
+  width: 100%;
+}
+
+:host(.docked) nav a,
+:host(.docked) .sales-nav-toggle {
+  font-size: 15px;
 }

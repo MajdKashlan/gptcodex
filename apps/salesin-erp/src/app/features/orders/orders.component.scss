@@ -1,14 +1,10 @@
 :host {
   display: block;
-  min-height: 100dvh;
 }
 
 .orders-shell {
-  background: #F2F2F2;
   color: #1C1C1C;
-  display: flex;
   font-size: 14px;
-  min-height: 100dvh;
 }
 
 .orders-page {
@@ -30,10 +26,15 @@
 .sales-list-heading {
   display: flex;
   gap: 12px;
-  padding: 20px 24px 0;
+  align-items: baseline;
+  padding: 20px 24px 8px;
+
+  span {
+    color: var(--text-secondary);
+  }
 }
 
-.sales-list-heading h1 {
+.sales-list-heading h2 {
   font-size: 18px;
   font-weight: 500;
   margin: 0;
@@ -129,78 +130,6 @@
   white-space: nowrap;
 }
 
-.selection-count {
-  font-size: 12px;
-  margin-right: 4px;
-}
-
-.tool-button {
-  align-items: center;
-  border: 0;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px #17242b30;
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  flex: 0 0 38px;
-  font-family: inherit;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1;
-  height: 38px;
-  justify-content: center;
-  padding: 0;
-  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
-  width: 38px;
-}
-
-.tool-button:hover:not(:disabled) {
-  box-shadow: 0 5px 14px rgb(23 41 48 / 18%);
-  filter: brightness(1.04);
-  transform: translateY(-1px);
-}
-
-.tool-button svg {
-  fill: none;
-  height: 18px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.9;
-  width: 18px;
-}
-
-.tool-button.select-tool svg rect,
-.tool-button.select-tool svg path {
-  stroke: currentColor;
-}
-
-.tool-button.select-tool svg path:last-child {
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.select-tool { background: #788b24; }
-.status-tool { background: #00a8bb; }
-.type-tool { background: #ad38b1; }
-.assigned-tool { background: #df3d73; }
-.payment-tool { background: #ec512d; }
-.excel-tool { background: #2e9f4b; }
-.pdf-tool { background: #f08a08; }
-.email-tool { background: #8c6655; }
-.duplicate-tool { background: #1596d5; }
-.delete-tool { background: #e9453b; }
-.settings-tool { background: #5267c4; }
-.refresh-tool { background: #55808b; }
-
-.tool-message {
-  background: #e8f5f7;
-  border-left: 3px solid #079fc3;
-  color: #30505a;
-  margin: -6px 24px 16px;
-  padding: 10px 14px;
-}
-
 .add-document-menu {
   position: relative;
 }
@@ -226,8 +155,117 @@
   font: inherit;
   min-height: 38px;
   padding: 0 16px;
-  text-align: left;
+  text-align: start;
   width: 100%;
+}
+
+.add-document-options button:hover {
+  background: var(--brand-soft);
+}
+
+.menu-hint {
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 4px 0 0;
+  padding: 8px 16px 4px;
+  white-space: normal;
+}
+
+.selection-bar {
+  align-items: center;
+  background: var(--brand-soft);
+  border: 1px solid #B3E5F5;
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: -6px 24px 14px;
+  padding: 8px 12px;
+  position: sticky;
+  top: 70px;
+  z-index: 5;
+
+  strong {
+    color: var(--brand-strong);
+  }
+}
+
+.selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  button {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    color: var(--text-primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  button.danger {
+    border-color: #F5B7B1;
+    color: var(--danger);
+  }
+
+  button.link {
+    background: transparent;
+    border-color: transparent;
+    color: var(--brand-strong);
+    text-decoration: underline;
+  }
+}
+
+.link-inline {
+  background: transparent;
+  border: 0;
+  color: var(--brand-strong);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.list-footer {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-left: 14px;
+}
+
+.page-size {
+  align-items: center;
+  color: var(--text-secondary);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+
+  select {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    min-height: 32px;
+    padding: 0 6px;
+  }
+}
+
+.item-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.is-loading {
+  opacity: .6;
+  pointer-events: none;
+}
+
+.order-status.draft-status {
+  background: #FFF4E5;
+  color: #B26A00;
 }
 
 .primary-button,
@@ -258,11 +296,6 @@
   color: #fff;
 }
 
-.icon-action {
-  font-size: 18px;
-  width: 38px;
-}
-
 button:disabled {
   cursor: no-drop;
   opacity: .55;
@@ -277,26 +310,10 @@ button:disabled {
   overflow-x: auto;
 }
 
-.pagination-bar {
-  align-items: center;
-  background: #fff;
-  border-bottom: 1px solid #e7e9eb;
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  padding: 12px 16px;
-}
-
-.pagination-bar span {
-  color: #49545d;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 table {
   border-collapse: collapse;
   font-size: 13px;
-  min-width: 900px;
+  min-width: 860px;
   width: 100%;
 }
 
@@ -327,17 +344,11 @@ th {
   width: 42px;
 }
 
-.checkbox-column input,
-.setting-option input {
+.checkbox-column input {
   accent-color: #079fc3;
   cursor: pointer;
   height: 18px;
   width: 18px;
-}
-
-.compact-rows td {
-  padding-bottom: 4px;
-  padding-top: 4px;
 }
 
 tbody tr {
@@ -350,10 +361,6 @@ tbody tr:nth-child(odd) {
 
 tbody tr:hover {
   background: #e8f5f7;
-}
-
-.read-only-row {
-  cursor: default;
 }
 
 .customer-cell {
@@ -441,15 +448,6 @@ tbody tr:hover {
   padding: 24px 28px;
 }
 
-.warning-note {
-  background: #18aee0;
-  box-shadow: 0 2px 4px #17242b2b;
-  color: #fff;
-  line-height: 1.5;
-  margin: 0 0 22px;
-  padding: 14px 16px;
-}
-
 .tool-field {
   color: #019ED1;
   display: flex;
@@ -482,18 +480,6 @@ tbody tr:hover {
   font-size: 12px;
   line-height: 1.5;
   margin: 12px 0 0;
-}
-
-.setting-option {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  margin: 0 0 12px;
-}
-
-.page-size-field {
-  margin-top: 26px;
-  max-width: 180px;
 }
 
 .dialog-heading {
@@ -856,5 +842,24 @@ tbody tr:hover {
   .dialog-actions button {
     flex: 1;
     min-width: 0;
+  }
+}
+.card-title a {
+  color: var(--brand-strong);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.card-title a:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 761px) {
+  td[data-label="Date"],
+  td[data-label="Due"],
+  td[data-label="Type"],
+  .table-actions {
+    white-space: nowrap;
   }
 }

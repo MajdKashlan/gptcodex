@@ -1,13 +1,5 @@
-<main class="items-shell">
-  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+<div class="items-shell">
   <section class="items-page">
-    <app-page-topbar
-      title="Items"
-      [userName]="userName()"
-      [userImage]="userImage() ?? null"
-      [actions]="topbarActions"
-      (actionSelected)="handleTopbarAction($event)"
-    />
     @if (createNotice(); as notice) {
       <p class="state-message notice-message" role="status">{{ notice }}</p>
     }
@@ -42,26 +34,25 @@
       <button class="icon-button edit-item" type="button" [disabled]="!selectedItem() || savingEdit()" (click)="openEditItem()" aria-label="Edit selected item" title="Edit selected item">✎</button>
       <button class="icon-button refresh" type="button" [disabled]="loading()" [attr.aria-busy]="loading()" (click)="refresh()" aria-label="Refresh items" title="Refresh items">↻</button>
       <span class="selection-count">{{ selectedNames().size }} selected</span>
-      <span class="result-count">{{ items().length }} items loaded</span>
+      <button class="text-button" type="button" [disabled]="!items().length" (click)="exportCsv()">Export CSV</button>
+      <span class="result-count">{{ total() }} items</span>
     </div>
 
-    @if (loading()) {
-      <p class="state-message" role="status">Loading items…</p>
-    } @else if (error(); as message) {
+    @if (error(); as message) {
       <p class="state-message error-message" role="alert">{{ message }}</p>
     } @else {
-      <div class="table-frame">
-        <table>
+      <div class="table-frame" [class.is-loading]="loading()">
+        <table class="data-table">
           <thead>
             <tr>
-              <th class="check-column"></th>
+              <th class="check-column"><span class="visually-hidden">Select</span></th>
               <th class="image-column"><span class="visually-hidden">Image</span></th>
-              <th>Item ID</th>
               <th>Item</th>
               <th>Code</th>
+              <th>Group</th>
               <th>Barcode</th>
-              <th>Stock Level</th>
-              <th>Last Updated</th>
+              <th class="num">Stock</th>
+              <th>Updated</th>
               <th class="price-column">Price</th>
             </tr>
           </thead>
@@ -75,27 +66,28 @@
                 (keydown.enter)="openEditItem(item)"
                 (keydown.space)="$event.preventDefault(); openEditItem(item)"
               >
-                <td class="check-column"><input type="checkbox" [checked]="selectedNames().has(item.name)" (click)="$event.stopPropagation()" (change)="toggleItem(item.name)" [attr.aria-label]="'Select ' + item.item_name" /></td>
-                <td class="item-image">
+                <td class="check-column card-check" (click)="$event.stopPropagation()"><input type="checkbox" [checked]="selectedNames().has(item.name)" (change)="toggleItem(item.name)" [attr.aria-label]="'Select ' + item.item_name" /></td>
+                <td class="item-image card-image">
                   @if (item.image) {
-                    <img [src]="item.image" [alt]="item.item_name" />
+                    <img [src]="item.image" [alt]="item.item_name" loading="lazy" />
                   } @else {
                     <span class="item-placeholder" aria-hidden="true">▱</span>
                   }
                 </td>
-                <td>{{ item.name }}</td>
-                <td class="item-name">{{ item.item_name }}</td>
-                <td>{{ item.item_code }}</td>
-                <td>{{ item.barcode || 'N/A' }}</td>
-                <td>{{ item.actual_qty ?? 'N/A' }}</td>
-                <td>{{ item.modified ? (item.modified | date:'mediumDate') : 'N/A' }}</td>
-                <td class="price-column">{{ formatPrice(item.standard_rate) }} @if (item.stock_uom) { <span class="price-uom">/ {{ item.stock_uom }}</span> }</td>
+                <td class="item-name card-title" data-label="Item">{{ item.item_name }}@if (item.disabled === 1) { <span class="disabled-tag">Disabled</span> }</td>
+                <td data-label="Code">{{ item.item_code }}</td>
+                <td data-label="Group">{{ item.item_group || '—' }}</td>
+                <td data-label="Barcode">{{ item.barcode || '—' }}</td>
+                <td class="num" [class.negative]="(item.actual_qty ?? 0) < 0" data-label="Stock">{{ item.actual_qty == null ? '—' : (item.actual_qty | qty) + ' ' + item.stock_uom }}</td>
+                <td data-label="Updated">{{ item.modified | appDate }}</td>
+                <td class="price-column card-status" data-label="Price">{{ formatPrice(item.standard_rate, item.price_currency) }}</td>
               </tr>
             } @empty {
-              <tr><td class="empty-state" colspan="9">No items match this search.</td></tr>
+              <tr class="empty-row"><td class="empty-state" colspan="9">{{ loading() ? 'Loading…' : 'No items match this search.' }}</td></tr>
             }
           </tbody>
         </table>
+        <app-pager [page]="page()" [pageSize]="pageSize" [total]="total()" [busy]="loading()" (pageChange)="goToPage($event)" />
       </div>
     }
   </section>
@@ -105,8 +97,8 @@
       <section class="new-item-dialog" role="dialog" aria-modal="true" aria-labelledby="new-item-title" (click)="$event.stopPropagation()">
         <header class="new-item-heading"><h2 id="new-item-title">New Item</h2></header>
         <nav class="item-tabs" aria-label="New item sections">
-          <button type="button" [class.active]="newItemTab() === 'profile'" (click)="setNewItemTab('profile')">Profile <span>*</span></button>
-          <button type="button" [class.active]="newItemTab() === 'stock'" (click)="setNewItemTab('stock')">Stock <span>*</span></button>
+          <button type="button" [class.active]="newItemTab() === 'profile'" (click)="setNewItemTab('profile')"><span class="label-line">Profile <b class="req" aria-hidden="true">*</b></span></button>
+          <button type="button" [class.active]="newItemTab() === 'stock'" (click)="setNewItemTab('stock')"><span class="label-line">Stock <b class="req" aria-hidden="true">*</b></span></button>
           <button type="button" [class.active]="newItemTab() === 'images'" (click)="setNewItemTab('images')">Images</button>
         </nav>
 
@@ -114,25 +106,25 @@
           <div class="new-item-content">
             @if (newItemTab() === 'profile') {
               <div class="profile-fields">
-                <label class="field-wide">Name <span>*</span><input formControlName="itemName" autocomplete="off" /></label>
-                <label class="field-wide">Item Group <span>*</span>
+                <label class="field-wide"><span class="label-line">Name <b class="req" aria-hidden="true">*</b></span><input formControlName="itemName" autocomplete="off" /></label>
+                <label class="field-wide"><span class="label-line">Item Group <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="itemGroup"><option value="" disabled>Select category</option>@for (category of categories(); track category) {<option [value]="category">{{ category }}</option>}</select>
                 </label>
                 <label>Code<input formControlName="itemCode" autocomplete="off" /></label>
                 <label>Bar Code<input formControlName="barcode" autocomplete="off" /></label>
-                <label>Sales Units <span>*</span><input type="number" min="1" formControlName="salesUnits" /></label>
-                <label>Unit of Sale <span>*</span><select formControlName="salesUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
-                <label>Sales Unit Price <span>*</span><input type="number" min="0.01" step="0.01" formControlName="price" /></label>
-                <label class="field-wide">Price List <span>*</span>
+                <label><span class="label-line">Sales Units <b class="req" aria-hidden="true">*</b></span><input type="number" min="1" formControlName="salesUnits" /></label>
+                <label><span class="label-line">Unit of Sale <b class="req" aria-hidden="true">*</b></span><select formControlName="salesUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
+                <label><span class="label-line">Sales Unit Price <b class="req" aria-hidden="true">*</b></span><input type="number" min="0.01" step="0.01" formControlName="price" /></label>
+                <label class="field-wide"><span class="label-line">Price List <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="priceList"><option value="" disabled>Select price list</option>@for (priceList of priceLists(); track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
                 </label>
               </div>
             } @else if (newItemTab() === 'stock') {
               <section class="stock-fields">
-                <h3>Locations &amp; Stock Levels <span>*</span></h3>
+                <h3><span class="label-line">Locations &amp; Stock Levels <b class="req" aria-hidden="true">*</b></span></h3>
                 <label class="stock-option"><input type="checkbox" formControlName="isStockItem" /><span>Maintain stock levels for this item</span></label>
                 <p>Initial stock quantities and warehouse balances are managed through ERPNext stock transactions after the item is created.</p>
-                <label class="uom-field">Stock Unit of Measure <span>*</span><select formControlName="stockUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
+                <label class="uom-field"><span class="label-line">Stock Unit of Measure <b class="req" aria-hidden="true">*</b></span><select formControlName="stockUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select></label>
               </section>
             } @else {
               <section class="image-fields">
@@ -163,31 +155,31 @@
       <section class="new-item-dialog edit-item-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-item-title" (click)="$event.stopPropagation()">
         <header class="new-item-heading"><h2 id="edit-item-title">{{ duplicatingItem() ? 'Duplicate item' : editItemDetail()?.item_name }}</h2></header>
         <nav class="item-tabs" aria-label="Edit item sections">
-          <button type="button" [class.active]="editItemTab() === 'profile'" (click)="setEditItemTab('profile')">Profile <span>*</span></button>
-          <button type="button" [class.active]="editItemTab() === 'stock'" (click)="setEditItemTab('stock')">Stock <span>*</span></button>
+          <button type="button" [class.active]="editItemTab() === 'profile'" (click)="setEditItemTab('profile')"><span class="label-line">Profile <b class="req" aria-hidden="true">*</b></span></button>
+          <button type="button" [class.active]="editItemTab() === 'stock'" (click)="setEditItemTab('stock')"><span class="label-line">Stock <b class="req" aria-hidden="true">*</b></span></button>
           <button type="button" [class.active]="editItemTab() === 'images'" (click)="setEditItemTab('images')">Images</button>
         </nav>
         <form [formGroup]="editItemForm" (ngSubmit)="updateItem()">
           <div class="new-item-content">
             @if (editItemTab() === 'profile') {
               <div class="profile-fields">
-                <label class="field-wide">Name <span>*</span><input formControlName="itemName" autocomplete="off" /></label>
-                <label class="field-wide">Item Group <span>*</span>
+                <label class="field-wide"><span class="label-line">Name <b class="req" aria-hidden="true">*</b></span><input formControlName="itemName" autocomplete="off" /></label>
+                <label class="field-wide"><span class="label-line">Item Group <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="itemGroup"><option value="" disabled>Select category</option>@for (category of categories(); track category) {<option [value]="category">{{ category }}</option>}</select>
                 </label>
-                <label>Code <span>*</span><input formControlName="itemCode" autocomplete="off" [readonly]="!duplicatingItem()" /></label>
+                <label><span class="label-line">Code <b class="req" aria-hidden="true">*</b></span><input formControlName="itemCode" autocomplete="off" [readonly]="!duplicatingItem()" /></label>
                 <label>Bar Code<input formControlName="barcode" autocomplete="off" /></label>
                 <label>Sales Unit Price<input type="number" min="0" step="0.01" formControlName="price" /></label>
-                <label>Price List <span>*</span>
+                <label><span class="label-line">Price List <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="priceList"><option value="" disabled>Select price list</option>@for (priceList of priceLists(); track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
                 </label>
-                <label class="field-wide">Stock Unit of Measure <span>*</span>
+                <label class="field-wide"><span class="label-line">Stock Unit of Measure <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="stockUom"><option value="" disabled>Select UOM</option>@for (uom of uoms(); track uom) {<option [value]="uom">{{ uom }}</option>}</select>
                 </label>
               </div>
             } @else if (editItemTab() === 'stock') {
               <section class="stock-fields">
-                <h3>Locations &amp; Stock Levels <span>*</span></h3>
+                <h3><span class="label-line">Locations &amp; Stock Levels <b class="req" aria-hidden="true">*</b></span></h3>
                 <div class="stock-level-table">
                   <div class="stock-level-header"><span>Location</span><span>Stock Level</span></div>
                   @for (level of stockLevels(); track level.warehouse) {
@@ -252,16 +244,4 @@
     </div>
   }
 
-  @if (logoutConfirmationOpen()) {
-    <div class="dialog-backdrop" (click)="cancelSignOut()">
-      <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="logout-title" (click)="$event.stopPropagation()">
-        <h2 id="logout-title">Log out?</h2>
-        <p>You will need to sign in again to access the dashboard.</p>
-        <div class="dialog-actions">
-          <button type="button" class="cancel-button" [disabled]="logoutLoading()" (click)="cancelSignOut()">Cancel</button>
-          <button type="button" class="confirm-button" [disabled]="logoutLoading()" (click)="confirmSignOut()">{{ logoutLoading() ? 'Logging out…' : 'Log out' }}</button>
-        </div>
-      </section>
-    </div>
-  }
-</main>
+</div>

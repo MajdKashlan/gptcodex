@@ -1,0 +1,168 @@
+<div class="reports">
+  <nav class="report-tabs" aria-label="Reports">
+    @for (item of tabs; track item.id) {
+      <button type="button" [class.active]="tab() === item.id" [attr.aria-pressed]="tab() === item.id" (click)="selectTab(item.id)">{{ item.label }}</button>
+    }
+  </nav>
+
+  <section class="filters panel" aria-label="Report filters">
+    @if (dated()) {
+      <div class="presets" role="group" aria-label="Date range">
+        @for (p of presets; track p.id) {
+          @if (p.id !== 'custom') {
+            <button type="button" [class.active]="preset() === p.id" (click)="applyPreset(p.id)">{{ p.label }}</button>
+          }
+        }
+      </div>
+      <label>From<input type="date" [ngModel]="from()" (ngModelChange)="changeDate('from', $event)" [max]="to()" /></label>
+      <label>To<input type="date" [ngModel]="to()" (ngModelChange)="changeDate('to', $event)" [min]="from()" /></label>
+      @if (companies().length > 1) {
+        <label>Company
+          <select [ngModel]="company()" (ngModelChange)="changeCompany($event)">
+            <option value="">All companies</option>
+            @for (c of companies(); track c.name) { <option [value]="c.name">{{ c.name }}</option> }
+          </select>
+        </label>
+      }
+    } @else {
+      <p class="muted">{{ tab() === 'aging' ? 'Outstanding balances of submitted invoices as of today.' : 'Current stock value per warehouse.' }}</p>
+    }
+    <div class="filter-actions">
+      <button type="button" class="secondary-button" [disabled]="loading()" (click)="load()" aria-label="Refresh report">↻</button>
+      <button type="button" class="secondary-button" [disabled]="loading()" (click)="exportCsv()">Export CSV</button>
+    </div>
+  </section>
+
+  @if (error(); as message) {
+    <p class="status-message error-message" role="alert">
+      {{ message }}
+      @if (tab() === 'items') { <br /><small>Item-level figures need read access to Sales Invoice items.</small> }
+    </p>
+  }
+
+  <div class="report-body" [class.is-loading]="loading()" [attr.aria-busy]="loading()">
+    @switch (tab()) {
+      @case ('sales') {
+        <section class="kpis">
+          <div class="kpi panel"><span>Net sales</span><strong>{{ money(salesTotals().net) }}</strong><small>{{ rangeLabel() }}</small></div>
+          <div class="kpi panel"><span>Incl. taxes</span><strong>{{ money(salesTotals().gross) }}</strong></div>
+          <div class="kpi panel"><span>Invoices</span><strong>{{ salesTotals().invoices | qty: 0 }}</strong><small>{{ salesTotals().returns }} credit notes</small></div>
+          <div class="kpi panel"><span>Average invoice</span><strong>{{ money(salesTotals().invoices ? salesTotals().gross / salesTotals().invoices : 0) }}</strong></div>
+        </section>
+        <section class="panel chart-panel">
+          <h3>Net sales by month</h3>
+          <div class="column-chart" role="img" [attr.aria-label]="'Net sales by month, ' + rangeLabel()">
+            @for (row of periods(); track row.period) {
+              <div class="column" [title]="monthLabel(row.period) + ': ' + money(row.net)">
+                <span class="column-value">{{ row.net ? money(row.net) : '' }}</span>
+                <div class="bar-track"><i [class.negative]="row.net < 0" [style.height.%]="share(Math.abs(row.net), maxPeriod())"></i></div>
+                <span class="column-label">{{ monthLabel(row.period) }}</span>
+              </div>
+            }
+          </div>
+        </section>
+        <section class="panel table-panel">
+          <table class="data-table">
+            <thead><tr><th>Month</th><th class="num">Net sales</th><th class="num">Incl. taxes</th><th class="num">Invoices</th><th class="num">Credit notes</th></tr></thead>
+            <tbody>
+              @for (row of periods(); track row.period) {
+                <tr>
+                  <td class="card-title" data-label="Month">{{ monthLabel(row.period) }}</td>
+                  <td class="num" data-label="Net sales">{{ money(row.net) }}</td>
+                  <td class="num" data-label="Incl. taxes">{{ money(row.gross) }}</td>
+                  <td class="num" data-label="Invoices">{{ row.invoices }}</td>
+                  <td class="num" data-label="Credit notes">{{ row.returns }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+      @case ('customers') {
+        <section class="panel table-panel">
+          <h3>Top {{ topN }} customers by net sales <small class="muted">· {{ customers().length }} customers · {{ money(customersTotal()) }}</small></h3>
+          <ol class="ranking">
+            @for (row of topCustomers(); track row.key; let i = $index) {
+              <li>
+                <span class="rank">{{ i + 1 }}</span>
+                <a class="rank-label" [routerLink]="['/customers', row.key]">{{ row.label }}</a>
+                <span class="rank-bar"><i [style.width.%]="share(row.value, topCustomers()[0].value)"></i></span>
+                <span class="rank-value">{{ money(row.value) }}</span>
+                <span class="rank-meta">{{ share(row.value, customersTotal()) | qty: 1 }}% · {{ row.count }} inv.</span>
+              </li>
+            } @empty {
+              <li class="empty">{{ loading() ? 'Loading…' : 'No sales in this period.' }}</li>
+            }
+          </ol>
+        </section>
+      }
+      @case ('items') {
+        <section class="panel table-panel">
+          <h3>Top {{ topN }} items by net sales <small class="muted">· {{ items().length }} items · {{ money(itemsTotal()) }}</small></h3>
+          <ol class="ranking">
+            @for (row of topItems(); track row.key; let i = $index) {
+              <li>
+                <span class="rank">{{ i + 1 }}</span>
+                <span class="rank-label" [title]="row.key">{{ row.label }}</span>
+                <span class="rank-bar"><i [style.width.%]="share(row.value, topItems()[0].value)"></i></span>
+                <span class="rank-value">{{ money(row.value) }}</span>
+                <span class="rank-meta">{{ row.qty | qty }} units</span>
+              </li>
+            } @empty {
+              <li class="empty">{{ loading() ? 'Loading…' : 'No item sales in this period.' }}</li>
+            }
+          </ol>
+        </section>
+      }
+      @case ('aging') {
+        <section class="kpis aging-kpis">
+          <div class="kpi panel"><span>Current</span><strong>{{ money(agingTotals().current) }}</strong></div>
+          <div class="kpi panel"><span>1–30 days</span><strong>{{ money(agingTotals().d30) }}</strong></div>
+          <div class="kpi panel"><span>31–60 days</span><strong>{{ money(agingTotals().d60) }}</strong></div>
+          <div class="kpi panel"><span>61–90 days</span><strong>{{ money(agingTotals().d90) }}</strong></div>
+          <div class="kpi panel danger"><span>90+ days</span><strong>{{ money(agingTotals().d90p) }}</strong></div>
+        </section>
+        <section class="panel table-panel">
+          <table class="data-table">
+            <thead><tr><th>Customer</th><th class="num">Current</th><th class="num">1–30</th><th class="num">31–60</th><th class="num">61–90</th><th class="num">90+</th><th class="num">Total</th></tr></thead>
+            <tbody>
+              @for (row of aging(); track row.customer) {
+                <tr>
+                  <td class="card-title" data-label="Customer"><a [routerLink]="['/customers', row.customer]">{{ row.name }}</a></td>
+                  <td class="num" data-label="Current">{{ money(row.current) }}</td>
+                  <td class="num" data-label="1–30">{{ money(row.days1To30) }}</td>
+                  <td class="num" data-label="31–60">{{ money(row.days31To60) }}</td>
+                  <td class="num" data-label="61–90">{{ money(row.days61To90) }}</td>
+                  <td class="num" [class.due]="row.days90Plus > 0" data-label="90+">{{ money(row.days90Plus) }}</td>
+                  <td class="num strong" data-label="Total">{{ money(row.total) }}</td>
+                </tr>
+              } @empty {
+                <tr class="empty-row"><td colspan="7" class="empty-state">{{ loading() ? 'Loading…' : 'No outstanding invoices.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+      @case ('stock') {
+        <section class="kpis">
+          <div class="kpi panel"><span>Total stock value</span><strong>{{ money(stockTotal()) }}</strong><small>{{ warehouses().length }} warehouses</small></div>
+        </section>
+        <section class="panel table-panel">
+          <ol class="ranking">
+            @for (row of warehouses(); track row.warehouse; let i = $index) {
+              <li>
+                <span class="rank">{{ i + 1 }}</span>
+                <span class="rank-label">{{ row.warehouse }}</span>
+                <span class="rank-bar"><i [style.width.%]="share(row.value, maxWarehouse())"></i></span>
+                <span class="rank-value">{{ money(row.value) }}</span>
+                <span class="rank-meta">{{ row.items }} items · {{ row.qty | qty }} qty</span>
+              </li>
+            } @empty {
+              <li class="empty">{{ loading() ? 'Loading…' : 'No stock found.' }}</li>
+            }
+          </ol>
+        </section>
+      }
+    }
+  </div>
+</div>

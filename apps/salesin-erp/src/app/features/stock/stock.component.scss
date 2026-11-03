@@ -3,7 +3,6 @@
 
 :host {
   display: block;
-  min-height: 100dvh;
 }
 
 .stock-shell {
@@ -187,10 +186,6 @@ tbody tr:nth-child(odd) {
 
 tbody tr:hover {
   background: #e8f5f7;
-}
-
-.read-only-row {
-  cursor: default;
 }
 
 .cell-strong {
@@ -468,4 +463,35 @@ tbody tr:hover {
   .dialog-fields {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.num {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.negative {
+  color: var(--danger);
+}
+
+.danger-text {
+  color: var(--danger) !important;
+}
+
+.item-hint {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.is-loading {
+  opacity: .6;
+}
+
+.stock-filters {
+  flex-wrap: wrap;
+}
+
+.status.draft-status {
+  background: #FFF4E5;
+  color: #B26A00;
 }

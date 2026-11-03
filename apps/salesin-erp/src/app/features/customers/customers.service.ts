@@ -1,9 +1,6 @@
-import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
-import { SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER } from '../../core/auth/auth.context';
-import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
-import { ErpNextListResponse } from '../../models/erpnext-document.models';
+import { FrappeApiService, FrappeFilter, Page } from '../../core/api/frappe-api.service';
 import { ErpNextCustomer } from '../../models/customer.models';
 
 export interface CustomerFormData {
@@ -86,89 +83,66 @@ export interface CustomerEditorData {
 
 @Injectable({ providedIn: 'root' })
 export class CustomersService {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(ErpNextAuthService);
+  private readonly api = inject(FrappeApiService);
 
-  list(query = ''): Observable<ErpNextCustomer[]> {
-    const fields = [
-      'name',
-      'customer_name',
-      'customer_type',
-      'customer_group',
-      'territory',
-      'default_currency',
-      'default_price_list',
-      'disabled',
-      'modified',
-    ];
-    let params = new HttpParams()
-      .set('fields', JSON.stringify(fields))
-      .set('limit_page_length', '200')
-      .set('order_by', 'modified desc');
+  /** One server page of customers matching the search. */
+  page(query: string, page: number, pageSize: number, includeDisabled = true): Observable<Page<ErpNextCustomer>> {
     const term = query.trim();
-    if (term) {
-      params = params.set('or_filters', JSON.stringify([
+    const filters: FrappeFilter[] = includeDisabled ? [] : [['Customer', 'disabled', '=', 0]];
+    return this.api.getPage<ErpNextCustomer>('Customer', {
+      fields: ['name', 'customer_name', 'customer_type', 'customer_group', 'territory', 'default_currency', 'default_price_list', 'disabled', 'modified'],
+      filters,
+      orFilters: term ? [
         ['Customer', 'name', 'like', `%${term}%`],
         ['Customer', 'customer_name', 'like', `%${term}%`],
-      ]));
-    }
-
-    return this.http
-      .get<ErpNextListResponse<ErpNextCustomer>>(this.auth.apiUrl('/api/resource/Customer'), {
-        params,
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
-      })
-      .pipe(map((response) => response.data ?? []));
+        ['Customer', 'mobile_no', 'like', `%${term}%`],
+        ['Customer', 'email_id', 'like', `%${term}%`],
+      ] : [],
+      orderBy: 'customer_name asc',
+      page,
+      pageSize,
+    });
   }
 
   loadOptions(): Observable<CustomerOptions> {
     return forkJoin({
       groups: this.listNames('Customer Group', [['Customer Group', 'is_group', '=', 0]]),
       territories: this.listNames('Territory', [['Territory', 'is_group', '=', 0]]),
-      currencies: this.listNames('Currency'),
+      currencies: this.listNames('Currency', [['Currency', 'enabled', '=', 1]]),
       priceLists: this.listNames('Price List', [['Price List', 'selling', '=', 1]]),
       countries: this.listNames('Country'),
       taxCategories: this.listNames('Tax Category'),
       paymentTerms: this.listNames('Payment Terms Template'),
       itemGroups: this.listNames('Item Group', [['Item Group', 'is_group', '=', 0]]),
-      users: this.listNames('User', [['User', 'enabled', '=', 1]]),
+      users: this.listNames('User', [['User', 'enabled', '=', 1], ['User', 'user_type', '=', 'Website User']]),
       paymentMethods: this.listNames('Mode of Payment'),
     });
   }
 
-  get(name: string): Observable<CustomerEditorData> {
-    return this.http
-      .get<{ data: ErpNextCustomer }>(
-        this.auth.apiUrl('/api/resource/Customer/' + encodeURIComponent(name)),
-        { withCredentials: true },
-      )
-      .pipe(
-        map((response) => response.data),
-        switchMap((customer) => forkJoin({
-          customer: of(customer),
-          contactName: of(customer.customer_primary_contact ?? ''),
-          addressName: of(customer.customer_primary_address ?? ''),
-          contact: customer.customer_primary_contact
-            ? this.getContact(customer.customer_primary_contact)
-            : of(this.emptyContact()),
-          address: customer.customer_primary_address
-            ? this.getAddress(customer.customer_primary_address)
-            : of(this.emptyAddress()),
-        })),
-      );
+  getCustomer(name: string): Observable<ErpNextCustomer> {
+    return this.api.getDoc<ErpNextCustomer>('Customer', name);
   }
 
-  create(
-    details: CustomerFormData,
-    contact: CustomerContactData,
-    address: CustomerAddressData,
-  ): Observable<ErpNextCustomer> {
-    return this.http
-      .post<{ data: ErpNextCustomer }>(this.auth.apiUrl('/api/resource/Customer'), details, {
-        withCredentials: true,
-      })
-      .pipe(switchMap((response) => this.saveLinkedRecords(response.data, contact, address, '', '')));
+  get(name: string): Observable<CustomerEditorData> {
+    return this.getCustomer(name).pipe(
+      switchMap((customer) => forkJoin({
+        customer: of(customer),
+        contactName: of(customer.customer_primary_contact ?? ''),
+        addressName: of(customer.customer_primary_address ?? ''),
+        contact: customer.customer_primary_contact
+          ? this.getContact(customer.customer_primary_contact).pipe(catchError(() => of(this.emptyContact())))
+          : of(this.emptyContact()),
+        address: customer.customer_primary_address
+          ? this.getAddress(customer.customer_primary_address).pipe(catchError(() => of(this.emptyAddress())))
+          : of(this.emptyAddress()),
+      })),
+    );
+  }
+
+  create(details: CustomerFormData, contact: CustomerContactData, address: CustomerAddressData): Observable<ErpNextCustomer> {
+    return this.api
+      .insert<ErpNextCustomer>('Customer', details)
+      .pipe(switchMap((customer) => this.saveLinkedRecords(customer, contact, address, '', '')));
   }
 
   update(
@@ -179,54 +153,35 @@ export class CustomersService {
     contactName: string,
     addressName: string,
   ): Observable<ErpNextCustomer> {
-    return this.http
-      .put<{ data: ErpNextCustomer }>(
-        this.auth.apiUrl('/api/resource/Customer/' + encodeURIComponent(name)),
-        details,
-        { withCredentials: true },
-      )
-      .pipe(switchMap((response) => this.saveLinkedRecords(
-        response.data,
-        contact,
-        address,
-        contactName,
-        addressName,
-      )));
+    return this.api
+      .update<ErpNextCustomer>('Customer', name, details)
+      .pipe(switchMap((customer) => this.saveLinkedRecords(customer, contact, address, contactName, addressName)));
   }
 
   private getContact(name: string): Observable<CustomerContactData> {
-    return this.http
-      .get<{ data: CustomerContactRecord }>(this.auth.apiUrl('/api/resource/Contact/' + encodeURIComponent(name)), {
-        withCredentials: true,
-      })
-      .pipe(map(({ data }) => ({
-        first_name: data.first_name ?? '',
-        last_name: data.last_name ?? '',
-        email: data.email_ids?.find((email) => email.is_primary)?.email_id ?? data.email_ids?.[0]?.email_id ?? '',
-        business_phone: data.phone_nos?.find((phone) => phone.is_primary_phone)?.phone ?? '',
-        home_phone: data.phone_nos?.[1]?.phone ?? '',
-        mobile_phone: data.phone_nos?.find((phone) => phone.is_primary_mobile_no)?.phone ?? '',
-        fax: '',
-      })));
+    return this.api.getDoc<CustomerContactRecord>('Contact', name).pipe(map((data) => ({
+      first_name: data.first_name ?? '',
+      last_name: data.last_name ?? '',
+      email: data.email_ids?.find((email) => email.is_primary)?.email_id ?? data.email_ids?.[0]?.email_id ?? '',
+      business_phone: data.phone_nos?.find((phone) => phone.is_primary_phone)?.phone ?? '',
+      home_phone: data.phone_nos?.find((phone) => !phone.is_primary_phone && !phone.is_primary_mobile_no)?.phone ?? '',
+      mobile_phone: data.phone_nos?.find((phone) => phone.is_primary_mobile_no)?.phone ?? '',
+      fax: '',
+    })));
   }
 
   private getAddress(name: string): Observable<CustomerAddressData> {
-    return this.http
-      .get<{ data: CustomerAddressRecord }>(this.auth.apiUrl('/api/resource/Address/' + encodeURIComponent(name)), {
-        withCredentials: true,
-      })
-      .pipe(map(({ data }) => ({
-        address_type: data.address_type ?? 'Billing',
-        address_line1: data.address_line1 ?? '',
-        address_line2: data.address_line2 ?? '',
-        city: data.city ?? '',
-        state: data.state ?? '',
-        pincode: data.pincode ?? '',
-        country: data.country ?? '',
-        fax: data.fax ?? '',
-      })));
+    return this.api.getDoc<CustomerAddressRecord>('Address', name).pipe(map((data) => ({
+      address_type: data.address_type ?? 'Billing',
+      address_line1: data.address_line1 ?? '',
+      address_line2: data.address_line2 ?? '',
+      city: data.city ?? '',
+      state: data.state ?? '',
+      pincode: data.pincode ?? '',
+      country: data.country ?? '',
+      fax: data.fax ?? '',
+    })));
   }
-
   private saveLinkedRecords(
     customer: ErpNextCustomer,
     contact: CustomerContactData,
@@ -249,13 +204,7 @@ export class CustomersService {
         if (!Object.keys(links).length) {
           return of(customer);
         }
-        return this.http
-          .put<{ data: ErpNextCustomer }>(
-            this.auth.apiUrl('/api/resource/Customer/' + encodeURIComponent(customer.name)),
-            links,
-            { withCredentials: true },
-          )
-          .pipe(map((response) => response.data));
+        return this.api.update<ErpNextCustomer>('Customer', customer.name, links);
       }),
     );
   }
@@ -281,13 +230,9 @@ export class CustomersService {
     };
 
     if (contactName) {
-      return this.http
-        .put(this.auth.apiUrl('/api/resource/Contact/' + encodeURIComponent(contactName)), payload, { withCredentials: true })
-        .pipe(map(() => contactName));
+      return this.api.update('Contact', contactName, payload).pipe(map(() => contactName));
     }
-    return this.http
-      .post<{ data: { name: string } }>(this.auth.apiUrl('/api/resource/Contact'), payload, { withCredentials: true })
-      .pipe(map((response) => response.data.name));
+    return this.api.insert<{ name: string }>('Contact', payload).pipe(map((created) => created.name));
   }
 
   private saveAddress(customerName: string, address: CustomerAddressData, addressName: string): Observable<string> {
@@ -310,13 +255,9 @@ export class CustomersService {
     };
 
     if (addressName) {
-      return this.http
-        .put(this.auth.apiUrl('/api/resource/Address/' + encodeURIComponent(addressName)), payload, { withCredentials: true })
-        .pipe(map(() => addressName));
+      return this.api.update('Address', addressName, payload).pipe(map(() => addressName));
     }
-    return this.http
-      .post<{ data: { name: string } }>(this.auth.apiUrl('/api/resource/Address'), payload, { withCredentials: true })
-      .pipe(map((response) => response.data.name));
+    return this.api.insert<{ name: string }>('Address', payload).pipe(map((created) => created.name));
   }
 
   private emptyContact(): CustomerContactData {
@@ -327,24 +268,10 @@ export class CustomersService {
     return { address_type: 'Billing', address_line1: '', address_line2: '', city: '', state: '', pincode: '', country: '', fax: '' };
   }
 
+  /** Optional lookup tables: a role without access gets an empty list. */
   private listNames(doctype: string, filters: unknown[][] = []): Observable<string[]> {
-    let params = new HttpParams()
-      .set('fields', JSON.stringify(['name']))
-      .set('limit_page_length', '500')
-      .set('order_by', 'name asc');
-    if (filters.length) {
-      params = params.set('filters', JSON.stringify(filters));
-    }
-
-    return this.http
-      .get<ErpNextListResponse<{ name: string }>>(this.auth.apiUrl('/api/resource/' + encodeURIComponent(doctype)), {
-        params,
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
-      })
-      .pipe(
-        map((response) => (response.data ?? []).map((row) => row.name)),
-        catchError(() => of([])),
-      );
+    return this.api
+      .getList<{ name: string }>(doctype, { fields: ['name'], filters, orderBy: 'name asc', pageLength: 0 })
+      .pipe(map((rows) => rows.map((row) => row.name)), catchError(() => of([])));
   }
 }

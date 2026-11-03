@@ -1,78 +1,54 @@
-import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { finalize, forkJoin, Observable, of } from 'rxjs';
-import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
-import { LanguageService } from '../../core/i18n/language.service';
+import { RouterLink } from '@angular/router';
+import { finalize, forkJoin, Observable } from 'rxjs';
+import { Page } from '../../core/api/frappe-api.service';
 import { frappeErrorMessage } from '../../core/http/frappe-error';
-import { ErpNextItem } from '../../models/item.models';
-import {
-  ErpNextBin,
-  ErpNextStockEntry,
-  ErpNextStockEntryType,
-  ErpNextStockLedgerEntry,
-} from '../../models/stock.models';
-import {
-  PageTopbarAction,
-  PageTopbarComponent,
-} from '../../shared/components/page-topbar/page-topbar.component';
-import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { NotificationService } from '../../core/http/notification.service';
+import { downloadCsv } from '../../core/utils/csv';
+import { todayIso } from '../../core/utils/date';
+import { ErpNextBin, ErpNextStockEntry, ErpNextStockEntryType, ErpNextStockLedgerEntry } from '../../models/stock.models';
+import { ConfirmService } from '../../shared/components/confirm-dialog/confirm.service';
+import { LinkInputComponent } from '../../shared/components/link-input/link-input.component';
+import { PagerComponent } from '../../shared/components/pager/pager.component';
+import { AppDatePipe, MoneyPipe, QtyPipe } from '../../shared/pipes/format.pipes';
 import { StockEntryRequest, StockService } from './stock.service';
 
 type StockTab = 'entries' | 'levels' | 'movements';
+const PAGE_SIZE = 25;
 
-interface StockDialogOptions {
-  companies: Array<{ name: string; default_currency?: string }>;
-  items: ErpNextItem[];
-  stockEntryTypes: ErpNextStockEntryType[];
-}
-
-/**
- * Stock on hand, stock movements and `Stock Entry` creation.
- *
- * Reads come from `Bin` and `Stock Ledger Entry`, both of which ERPNext maintains
- * as read-only roll-ups. Entries are created as drafts and submitted explicitly,
- * because submitting posts stock and accounting entries.
- */
+/** Stock on hand, stock movements and Stock Entry creation. */
 @Component({
   selector: 'app-stock',
-  imports: [CommonModule, ReactiveFormsModule, SidebarComponent, PageTopbarComponent],
+  imports: [ReactiveFormsModule, RouterLink, LinkInputComponent, PagerComponent, AppDatePipe, MoneyPipe, QtyPipe],
   templateUrl: './stock.component.html',
   styleUrl: './stock.component.scss',
 })
 export class StockComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
-  private readonly auth = inject(ErpNextAuthService);
-  private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
   private readonly stockService = inject(StockService);
-  protected readonly i18n = inject(LanguageService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly notifications = inject(NotificationService);
 
-  protected readonly userName = computed(() => this.auth.currentUser()?.fullName || 'User');
-  protected readonly userImage = computed(() => this.auth.currentUser()?.imageUrl);
-  protected readonly topbarActions: PageTopbarAction[] = [{ id: 'logout', label: 'Logout' }];
-
+  protected readonly pageSize = PAGE_SIZE;
   protected readonly tab = signal<StockTab>('levels');
+  protected readonly page = signal(1);
+  protected readonly total = signal(0);
   protected readonly levels = signal<ErpNextBin[]>([]);
   protected readonly movements = signal<ErpNextStockLedgerEntry[]>([]);
   protected readonly entries = signal<ErpNextStockEntry[]>([]);
   protected readonly warehouses = signal<string[]>([]);
-  protected readonly options = signal<StockDialogOptions>({
-    companies: [],
-    items: [],
-    stockEntryTypes: [],
-  });
+  protected readonly companies = signal<Array<{ name: string }>>([]);
+  protected readonly stockEntryTypes = signal<ErpNextStockEntryType[]>([]);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly formError = signal<string | null>(null);
   protected readonly dialogOpen = signal(false);
-  protected readonly submittingEntry = signal<string | null>(null);
-
-  /** Mirrors the form control so `entryPurpose` can be a reactive computed. */
+  protected readonly busyEntry = signal<string | null>(null);
   protected readonly selectedEntryType = signal('');
 
   protected readonly warehouseFilter = new FormControl('', { nonNullable: true });
@@ -81,65 +57,90 @@ export class StockComponent implements OnInit {
   protected readonly entryForm = this.formBuilder.nonNullable.group({
     stock_entry_type: ['', Validators.required],
     company: ['', Validators.required],
-    posting_date: [this.today(), Validators.required],
+    posting_date: [todayIso(), Validators.required],
     from_warehouse: [''],
     to_warehouse: [''],
   });
-
   protected readonly entryItems = this.formBuilder.array([this.createItemRow()]);
 
-  /** The chosen `Stock Entry Type`'s purpose decides which warehouses are required. */
-  protected readonly entryPurpose = computed(() => {
-    const name = this.selectedEntryType();
-    return (
-      this.options().stockEntryTypes.find((entryType) => entryType.name === name)?.purpose ?? ''
-    );
-  });
-
-  protected readonly needsFromWarehouse = computed(() => {
-    const purpose = this.entryPurpose();
-    return purpose === 'Material Issue' || purpose === 'Material Transfer';
-  });
-
-  protected readonly needsToWarehouse = computed(() => {
-    const purpose = this.entryPurpose();
-    return purpose === 'Material Receipt' || purpose === 'Material Transfer';
-  });
+  protected readonly entryPurpose = computed(() =>
+    this.stockEntryTypes().find((entryType) => entryType.name === this.selectedEntryType())?.purpose ?? '');
+  protected readonly needsFromWarehouse = computed(() => ['Material Issue', 'Material Transfer'].includes(this.entryPurpose()));
+  protected readonly needsToWarehouse = computed(() => ['Material Receipt', 'Material Transfer'].includes(this.entryPurpose()));
 
   ngOnInit(): void {
-    const session$: Observable<unknown> = this.auth.isAuthenticated()
-      ? of(null)
-      : this.auth.restoreSession();
-
-    session$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => this.loadPage(),
-      error: () => void this.router.navigate(['/login']),
-    });
-  }
-
-  protected signOut(): void {
-    this.auth.logout().subscribe({ next: () => void this.router.navigate(['/login']) });
-  }
-
-  protected handleTopbarAction(actionId: string): void {
-    if (actionId === 'logout') {
-      this.signOut();
-    }
+    forkJoin({
+      companies: this.stockService.listCompanies(),
+      types: this.stockService.listStockEntryTypes(),
+      warehouses: this.stockService.listWarehouses(),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.companies.set(result.companies);
+          this.stockEntryTypes.set(result.types);
+          this.warehouses.set(result.warehouses);
+        },
+        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
+      });
+    this.load();
   }
 
   protected selectTab(tab: StockTab): void {
     this.tab.set(tab);
-    this.reloadActiveTab();
+    this.page.set(1);
+    this.load();
   }
 
   protected applyFilters(): void {
-    this.reloadActiveTab();
+    this.page.set(1);
+    this.load();
   }
 
+  protected goToPage(page: number): void {
+    this.page.set(page);
+    this.load();
+  }
+
+  protected load(): void {
+    const query = { warehouse: this.warehouseFilter.value, search: this.searchText.value, page: this.page(), pageSize: PAGE_SIZE };
+    this.loading.set(true);
+    this.error.set(null);
+    const handle = <T>(source: Observable<Page<T>>, target: (rows: T[]) => void) =>
+      source.pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: ({ rows, total }) => {
+          target(rows);
+          this.total.set(total);
+        },
+        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
+      });
+    switch (this.tab()) {
+      case 'levels': handle(this.stockService.levels(query), (rows) => this.levels.set(rows)); break;
+      case 'movements': handle(this.stockService.movements(query), (rows) => this.movements.set(rows)); break;
+      default: handle(this.stockService.entries(query), (rows) => this.entries.set(rows));
+    }
+  }
+
+  protected exportCsv(): void {
+    const tab = this.tab();
+    if (tab === 'levels') {
+      downloadCsv(`stock-levels-${todayIso()}.csv`, ['Item', 'Warehouse', 'Actual', 'Reserved', 'Projected', 'Valuation rate', 'Stock value'],
+        this.levels().map((r) => [r.item_code, r.warehouse, r.actual_qty, r.reserved_qty, r.projected_qty, r.valuation_rate, r.stock_value]));
+    } else if (tab === 'movements') {
+      downloadCsv(`stock-movements-${todayIso()}.csv`, ['Date', 'Item', 'Warehouse', 'Qty change', 'Qty after', 'Voucher type', 'Voucher'],
+        this.movements().map((r) => [r.posting_date, r.item_code, r.warehouse, r.actual_qty, r.qty_after_transaction, r.voucher_type, r.voucher_no]));
+    } else {
+      downloadCsv(`stock-entries-${todayIso()}.csv`, ['Entry', 'Date', 'Type', 'From', 'To', 'Value', 'Status'],
+        this.entries().map((r) => [r.name, r.posting_date, r.stock_entry_type, r.from_warehouse, r.to_warehouse, r.total_outgoing_value || r.total_incoming_value, this.entryStatus(r)]));
+    }
+  }
+
+  // ---- new entry -----------------------------------------------------------
   protected createItemRow() {
     return this.formBuilder.nonNullable.group({
       item_code: ['', Validators.required],
-      qty: [1, Validators.required],
+      item_name: [''],
+      qty: [1, [Validators.required, Validators.min(0.000001)]],
       uom: [''],
     });
   }
@@ -149,29 +150,28 @@ export class StockComponent implements OnInit {
   }
 
   protected removeItemRow(index: number): void {
-    if (this.entryItems.length > 1) {
-      this.entryItems.removeAt(index);
-    }
+    if (this.entryItems.length > 1) this.entryItems.removeAt(index);
   }
 
-  protected itemRow(index: number) {
-    return this.entryItems.at(index);
+  protected chooseItem(index: number, itemCode: string): void {
+    this.stockService.itemInfo(itemCode).subscribe({
+      next: (item) => this.entryItems.at(index).patchValue({ item_name: item.item_name ?? '', uom: item.stock_uom ?? '' }),
+      error: () => undefined,
+    });
   }
 
-  protected chooseEntryType(event: Event): void {
-    this.selectedEntryType.set((event.target as HTMLSelectElement).value);
+  protected chooseEntryType(value: string): void {
+    this.selectedEntryType.set(value);
   }
 
   protected openNewEntry(): void {
-    const types = this.options().stockEntryTypes;
-    const preferred =
-      types.find((entryType) => entryType.purpose === 'Material Issue') ?? types[0];
-    const defaultWarehouse = this.warehouses()[0] ?? '';
-
+    const types = this.stockEntryTypes();
+    const preferred = types.find((entryType) => entryType.purpose === 'Material Receipt') ?? types[0];
+    const defaultWarehouse = this.warehouseFilter.value || this.warehouses()[0] || '';
     this.entryForm.reset({
       stock_entry_type: preferred?.name ?? '',
-      company: this.options().companies[0]?.name ?? '',
-      posting_date: this.today(),
+      company: this.companies()[0]?.name ?? '',
+      posting_date: todayIso(),
       from_warehouse: defaultWarehouse,
       to_warehouse: defaultWarehouse,
     });
@@ -183,43 +183,39 @@ export class StockComponent implements OnInit {
   }
 
   protected closeDialog(): void {
-    if (this.saving()) {
-      return;
-    }
-    this.dialogOpen.set(false);
+    if (!this.saving()) this.dialogOpen.set(false);
   }
 
   protected saveEntry(): void {
-    const rows = this.entryItems
-      .getRawValue()
-      .filter((row) => row.item_code && Number(row.qty) > 0);
+    const rows = this.entryItems.getRawValue().filter((row) => row.item_code && Number(row.qty) > 0);
     const value = this.entryForm.getRawValue();
-
     if (this.entryForm.invalid || !rows.length) {
       this.entryForm.markAllAsTouched();
-      this.formError.set(this.i18n.t('stock.entryInvalid'));
+      this.formError.set('Choose an entry type, company and at least one item with a quantity.');
       return;
     }
     if (this.needsFromWarehouse() && !value.from_warehouse) {
-      this.formError.set(this.i18n.t('stock.fromWarehouseRequired'));
+      this.formError.set('Choose the source warehouse.');
       return;
     }
     if (this.needsToWarehouse() && !value.to_warehouse) {
-      this.formError.set(this.i18n.t('stock.toWarehouseRequired'));
+      this.formError.set('Choose the target warehouse.');
+      return;
+    }
+    if (this.needsFromWarehouse() && this.needsToWarehouse() && value.from_warehouse === value.to_warehouse) {
+      this.formError.set('Source and target warehouse must be different.');
       return;
     }
 
+    // Only send the warehouses this purpose uses: a target warehouse on a Material
+    // Issue (or a source on a Receipt) is rejected by ERPNext.
     const request: StockEntryRequest = {
       stockEntryType: value.stock_entry_type,
       company: value.company,
       postingDate: value.posting_date,
-      fromWarehouse: value.from_warehouse || undefined,
-      toWarehouse: value.to_warehouse || undefined,
-      items: rows.map((row) => ({
-        itemCode: row.item_code,
-        qty: Number(row.qty),
-        uom: row.uom || undefined,
-      })),
+      fromWarehouse: this.needsFromWarehouse() ? value.from_warehouse : undefined,
+      toWarehouse: this.needsToWarehouse() ? value.to_warehouse : undefined,
+      items: rows.map((row) => ({ itemCode: row.item_code, qty: Number(row.qty), uom: row.uom || undefined })),
     };
 
     this.saving.set(true);
@@ -228,116 +224,59 @@ export class StockComponent implements OnInit {
       .createStockEntry(request)
       .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (created) => {
           this.dialogOpen.set(false);
+          this.notifications.success(`Stock entry ${created.name} saved as draft. Submit it to update stock.`);
           this.tab.set('entries');
-          this.loadEntries();
+          this.page.set(1);
+          this.load();
         },
         error: (error: unknown) => this.formError.set(frappeErrorMessage(error)),
       });
   }
 
-  protected submitEntry(entry: ErpNextStockEntry, event: Event): void {
-    event.stopPropagation();
+  // ---- entry workflow --------------------------------------------------------
+  protected submitEntry(entry: ErpNextStockEntry): void {
+    this.confirm.ask({
+      title: `Submit ${entry.name}?`,
+      message: 'Submitting updates stock levels and posts accounting entries. It can only be reversed by cancelling.',
+      confirmLabel: 'Submit',
+    }).subscribe((ok) => {
+      if (ok) this.runEntryAction(entry, this.stockService.submit(entry.name), 'submitted');
+    });
+  }
 
-    const message = this.i18n.t('stock.confirmSubmit').split('{name}').join(entry.name);
-    if (!window.confirm(message)) {
-      return;
-    }
+  protected cancelEntry(entry: ErpNextStockEntry): void {
+    this.confirm.ask({
+      title: `Cancel ${entry.name}?`,
+      message: 'Cancelling reverses the stock and accounting entries.',
+      confirmLabel: 'Cancel entry',
+      cancelLabel: 'Keep',
+      danger: true,
+    }).subscribe((ok) => {
+      if (ok) this.runEntryAction(entry, this.stockService.cancel(entry.name), 'cancelled');
+    });
+  }
 
-    this.submittingEntry.set(entry.name);
-    this.stockService
-      .submit('Stock Entry', entry.name)
-      .pipe(finalize(() => this.submittingEntry.set(null)), takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => this.loadEntries(),
-        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
+  protected deleteEntry(entry: ErpNextStockEntry): void {
+    this.confirm.ask({ title: `Delete draft ${entry.name}?`, message: 'This cannot be undone.', confirmLabel: 'Delete', danger: true })
+      .subscribe((ok) => {
+        if (ok) this.runEntryAction(entry, this.stockService.delete(entry.name), 'deleted');
       });
+  }
+
+  private runEntryAction(entry: ErpNextStockEntry, action: Observable<void>, verb: string): void {
+    this.busyEntry.set(entry.name);
+    action.pipe(finalize(() => this.busyEntry.set(null)), takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.notifications.success(`${entry.name} ${verb}.`);
+        this.load();
+      },
+      error: (error: unknown) => this.notifications.error(error),
+    });
   }
 
   protected entryStatus(entry: ErpNextStockEntry): string {
-    if (entry.docstatus === 2) {
-      return this.i18n.t('stock.cancelled');
-    }
-    return entry.docstatus === 1 ? this.i18n.t('stock.submitted') : this.i18n.t('stock.draft');
-  }
-
-  protected today(): string {
-    return new Date().toISOString().slice(0, 10);
-  }
-
-  private loadPage(): void {
-    this.loading.set(true);
-    forkJoin({
-      companies: this.stockService.listCompanies(),
-      items: this.stockService.listItems(),
-      stockEntryTypes: this.stockService.listStockEntryTypes(),
-      warehouses: this.stockService.listWarehouses(),
-    })
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (result) => {
-          this.options.set({
-            companies: result.companies,
-            items: result.items,
-            stockEntryTypes: result.stockEntryTypes,
-          });
-          this.warehouses.set(result.warehouses);
-          this.reloadActiveTab();
-        },
-        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
-      });
-  }
-
-  private reloadActiveTab(): void {
-    switch (this.tab()) {
-      case 'levels':
-        this.loadLevels();
-        return;
-      case 'movements':
-        this.loadMovements();
-        return;
-      default:
-        this.loadEntries();
-    }
-  }
-
-  private loadLevels(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.stockService
-      .listStockLevels({ warehouse: this.warehouseFilter.value, search: this.searchText.value })
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rows) => this.levels.set(rows),
-        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
-      });
-  }
-
-  private loadMovements(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.stockService
-      .listMovements({
-        warehouse: this.warehouseFilter.value,
-        itemCode: this.searchText.value.trim(),
-      })
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rows) => this.movements.set(rows),
-        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
-      });
-  }
-
-  private loadEntries(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.stockService
-      .listStockEntries()
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rows) => this.entries.set(rows),
-        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
-      });
+    return entry.docstatus === 2 ? 'Cancelled' : entry.docstatus === 1 ? 'Submitted' : 'Draft';
   }
 }

@@ -1,13 +1,12 @@
-import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { finalize, forkJoin, Observable, of } from 'rxjs';
-import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
+import { frappeErrorMessage } from '../../core/http/frappe-error';
+import { NotificationService } from '../../core/http/notification.service';
 import { ErpNextCustomer } from '../../models/customer.models';
-import { PageTopbarAction, PageTopbarComponent } from '../../shared/components/page-topbar/page-topbar.component';
-import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { PagerComponent } from '../../shared/components/pager/pager.component';
 import {
   CustomerAddressData,
   CustomerContactData,
@@ -18,20 +17,21 @@ import {
 
 @Component({
   selector: 'app-customers',
-  imports: [CommonModule, ReactiveFormsModule, SidebarComponent, PageTopbarComponent],
+  imports: [ReactiveFormsModule, RouterLink, PagerComponent],
   templateUrl: './customers.component.html',
   styleUrl: './customers.component.scss',
 })
 export class CustomersComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
-  private readonly auth = inject(ErpNextAuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly notifications = inject(NotificationService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly customersService = inject(CustomersService);
 
-  protected readonly userName = computed(() => this.auth.currentUser()?.fullName || 'User');
-  protected readonly userImage = computed(() => this.auth.currentUser()?.imageUrl);
-  protected readonly topbarActions: PageTopbarAction[] = [{ id: 'logout', label: 'Logout' }];
+  protected readonly pageSize = 25;
+  protected readonly page = signal(1);
+  protected readonly total = signal(0);
   protected readonly customers = signal<ErpNextCustomer[]>([]);
   protected readonly options = signal<CustomerOptions>({
     groups: [], territories: [], currencies: [], priceLists: [], countries: [], taxCategories: [],
@@ -89,19 +89,29 @@ export class CustomersComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const session$: Observable<unknown> = this.auth.isAuthenticated()
-      ? of(null)
-      : this.auth.restoreSession();
-    session$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => this.loadPage(),
-      error: () => void this.router.navigate(['/login']),
-    });
+    this.customersService.loadOptions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((options) => {
+        this.options.set(options);
+        // Deep links from the customer page: /customers?edit=CUST-0001 or ?new=1
+        const params = this.route.snapshot.queryParamMap;
+        const edit = params.get('edit');
+        if (edit) this.openEditCustomer({ name: edit } as ErpNextCustomer);
+        else if (params.get('new')) this.openNewCustomer();
+        if (edit || params.get('new')) {
+          void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+        }
+      });
+    this.loadCustomers();
   }
 
-  protected handleTopbarAction(actionId: string): void {
-    if (actionId === 'logout') {
-      this.auth.logout().subscribe({ next: () => void this.router.navigate(['/login']) });
-    }
+  protected goToPage(page: number): void {
+    this.page.set(page);
+    this.loadCustomers();
+  }
+
+  protected openDetail(customer: ErpNextCustomer): void {
+    void this.router.navigate(['/customers', customer.name]);
   }
 
   protected setCustomerFormTab(tab: 'profile' | 'addresses' | 'details' | 'settings'): void {
@@ -137,11 +147,12 @@ export class CustomersComponent implements OnInit {
   }
 
   protected search(): void {
+    this.page.set(1);
     this.loadCustomers();
   }
 
   protected refresh(): void {
-    this.loadPage();
+    this.loadCustomers();
   }
 
   protected openNewCustomer(): void {
@@ -180,7 +191,7 @@ export class CustomersComponent implements OnInit {
       minimum_order_value: 0,
       payment_terms: '',
       default_payment_method: '',
-      default_currency: this.options().currencies.includes('USD') ? 'USD' : this.options().currencies[0] ?? '',
+      default_currency: '',
       default_price_list: this.options().priceLists.includes('Standard Selling')
         ? 'Standard Selling'
         : this.options().priceLists[0] ?? '',
@@ -245,7 +256,7 @@ export class CustomersComponent implements OnInit {
           });
           this.dialogOpen.set(true);
         },
-        error: (error: unknown) => this.error.set(this.errorMessage(error)),
+        error: (error: unknown) => this.notifications.error(error),
       });
   }
 
@@ -324,58 +335,26 @@ export class CustomersComponent implements OnInit {
     save$
       .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (saved) => {
           this.dialogOpen.set(false);
+          this.notifications.success(`Customer ${saved.customer_name || saved.name} ${current ? 'updated' : 'created'}.`);
           this.loadCustomers();
         },
-        error: (error: unknown) => this.formError.set(this.errorMessage(error)),
-      });
-  }
-
-  protected signOut(): void {
-    this.auth.logout().subscribe({ next: () => void this.router.navigate(['/login']) });
-  }
-
-  private loadPage(): void {
-    this.loading.set(true);
-    forkJoin({ options: this.customersService.loadOptions(), customers: this.customersService.list() })
-      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: ({ options, customers }) => {
-          this.options.set(options);
-          this.customers.set(customers);
-          this.error.set(null);
-        },
-        error: (error: unknown) => this.error.set(this.errorMessage(error)),
+        error: (error: unknown) => this.formError.set(frappeErrorMessage(error)),
       });
   }
 
   private loadCustomers(): void {
     this.loading.set(true);
-    this.customersService.list(this.searchText.value)
+    this.error.set(null);
+    this.customersService.page(this.searchText.value, this.page(), this.pageSize)
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (customers) => {
-          this.customers.set(customers);
-          this.error.set(null);
+        next: ({ rows, total }) => {
+          this.customers.set(rows);
+          this.total.set(total);
         },
-        error: (error: unknown) => this.error.set(this.errorMessage(error)),
+        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
       });
-  }
-
-  private errorMessage(error: unknown): string {
-    const details = error as { error?: { _server_messages?: string; message?: string } };
-    if (details.error?._server_messages) {
-      try {
-        const messages = JSON.parse(details.error._server_messages) as string[];
-        const firstMessage = messages[0] ? JSON.parse(messages[0]) as { message?: string } : null;
-        if (firstMessage?.message) {
-          return firstMessage.message.replace(/<[^>]+>/g, '');
-        }
-      } catch {
-        return 'ERPNext could not complete this customer operation.';
-      }
-    }
-    return details.error?.message ?? 'ERPNext could not complete this customer operation.';
   }
 }

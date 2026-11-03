@@ -1,43 +1,32 @@
-<main class="customers-shell">
-  <app-sidebar [userName]="userName()" [userImage]="userImage() ?? null" (signOut)="signOut()" />
+<div class="customers-shell">
   <section class="customers-page">
-    <app-page-topbar
-      title="Customers"
-      [userName]="userName()"
-      [userImage]="userImage() ?? null"
-      [actions]="topbarActions"
-      (actionSelected)="handleTopbarAction($event)"
-    />
-
     <section class="customer-tools" aria-label="Customer tools">
       <form class="customer-search" (submit)="$event.preventDefault(); search()">
-        <label for="customer-search">Customer ID or name</label>
+        <label for="customer-search">Customer, phone or email</label>
         <input id="customer-search" type="search" [formControl]="searchText" placeholder="Search customers" />
         <button class="primary-button" type="submit" [disabled]="loading()">Search</button>
       </form>
       <div class="tool-actions">
-        <span>{{ customers().length }} customers</span>
+        <span>{{ total() }} customers</span>
         <button class="secondary-button" type="button" [disabled]="loading()" (click)="refresh()" aria-label="Refresh customers" title="Refresh customers">↻</button>
-        <button class="primary-button new-customer-button" type="button" (click)="openNewCustomer()">+ New Customer</button>
+        <button class="primary-button new-customer-button" type="button" (click)="openNewCustomer()">+ New customer</button>
       </div>
     </section>
 
     @if (loadingCustomer()) {
       <p class="status-message" role="status">Loading customer…</p>
     }
-    @if (loading()) {
-      <p class="status-message" role="status">Loading customers…</p>
-    } @else if (error(); as message) {
+    @if (error(); as message) {
       <p class="status-message error-message" role="alert">{{ message }}</p>
     } @else {
-      <div class="customer-table-frame">
-        <table>
+      <div class="customer-table-frame" [class.is-loading]="loading()">
+        <table class="data-table">
           <thead>
             <tr>
-              <th>Customer ID</th>
               <th>Customer</th>
+              <th>ID</th>
               <th>Type</th>
-              <th>Customer Group</th>
+              <th>Group</th>
               <th>Territory</th>
               <th>Currency</th>
               <th>Status</th>
@@ -46,21 +35,22 @@
           </thead>
           <tbody>
             @for (customer of customers(); track customer.name) {
-              <tr tabindex="0" (click)="openEditCustomer(customer)" (keydown.enter)="openEditCustomer(customer)">
-                <td>{{ customer.name }}</td>
-                <td class="customer-name">{{ customer.customer_name }}</td>
-                <td>{{ customer.customer_type || 'Company' }}</td>
-                <td>{{ customer.customer_group || 'N/A' }}</td>
-                <td>{{ customer.territory || 'N/A' }}</td>
-                <td>{{ customer.default_currency || 'N/A' }}</td>
-                <td><span class="status" [class.disabled-status]="customer.disabled === 1">{{ customer.disabled === 1 ? 'Disabled' : 'Active' }}</span></td>
-                <td><button class="row-edit-button" type="button" (click)="$event.stopPropagation(); openEditCustomer(customer)">Edit</button></td>
+              <tr class="clickable-row" tabindex="0" (click)="openDetail(customer)" (keydown.enter)="openDetail(customer)">
+                <td class="customer-name card-title" data-label="Customer"><a [routerLink]="['/customers', customer.name]" (click)="$event.stopPropagation()">{{ customer.customer_name }}</a></td>
+                <td data-label="ID">{{ customer.name }}</td>
+                <td data-label="Type">{{ customer.customer_type || 'Company' }}</td>
+                <td data-label="Group">{{ customer.customer_group || '—' }}</td>
+                <td data-label="Territory">{{ customer.territory || '—' }}</td>
+                <td data-label="Currency">{{ customer.default_currency || 'Company default' }}</td>
+                <td class="card-status" data-label="Status"><span class="status" [class.disabled-status]="customer.disabled === 1">{{ customer.disabled === 1 ? 'Disabled' : 'Active' }}</span></td>
+                <td class="card-actions" (click)="$event.stopPropagation()"><button class="row-edit-button" type="button" (click)="openEditCustomer(customer)">Edit</button></td>
               </tr>
             } @empty {
-              <tr><td colspan="8" class="empty-state">No customers found.</td></tr>
+              <tr class="empty-row"><td colspan="8" class="empty-state">{{ loading() ? 'Loading…' : 'No customers found.' }}</td></tr>
             }
           </tbody>
         </table>
+        <app-pager [page]="page()" [pageSize]="pageSize" [total]="total()" [busy]="loading()" (pageChange)="goToPage($event)" />
       </div>
     }
   </section>
@@ -69,7 +59,7 @@
     <div class="dialog-backdrop" (click)="closeDialog()">
       <section class="customer-dialog" role="dialog" aria-modal="true" aria-labelledby="customer-dialog-title" (click)="$event.stopPropagation()">
         <header class="dialog-heading">
-          <h2 id="customer-dialog-title">{{ editingCustomer() ? 'Edit customer' : 'New customer' }}</h2>
+          <h2 id="customer-dialog-title">{{ editingCustomer() ? 'Edit ' + editingCustomer()!.customer_name : 'New customer' }}</h2>
           <button type="button" class="dialog-close" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
         </header>
         <nav class="customer-tabs" aria-label="Customer sections">
@@ -82,16 +72,16 @@
           <div class="dialog-content">
             @if (customerFormTab() === 'profile') {
               <div class="customer-fields profile-fields">
-                <label class="field-wide">Name <span>*</span><input formControlName="customer_name" autocomplete="organization" /></label>
+                <label class="field-wide"><span class="label-line">Name <b class="req" aria-hidden="true">*</b></span><input formControlName="customer_name" autocomplete="organization" /></label>
                 <label>Code<input formControlName="alias" autocomplete="off" /></label>
                 <label>Business Number<input formControlName="tax_id" autocomplete="off" /></label>
-                <label>Customer Type <span>*</span>
+                <label><span class="label-line">Customer Type <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="customer_type"><option value="" disabled>Select type</option>@for (type of customerTypes; track type) {<option [value]="type">{{ type }}</option>}<option value="Partnership">Partnership</option></select>
                 </label>
-                <label>Customer Group <span>*</span>
+                <label><span class="label-line">Customer Group <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="customer_group"><option value="" disabled>Select group</option>@for (group of options().groups; track group) {<option [value]="group">{{ group }}</option>}</select>
                 </label>
-                <label>Territory <span>*</span>
+                <label><span class="label-line">Territory <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="territory"><option value="" disabled>Select territory</option>@for (territory of options().territories; track territory) {<option [value]="territory">{{ territory }}</option>}</select>
                 </label>
                 <label>First Name<input formControlName="first_name" autocomplete="given-name" /></label>
@@ -104,7 +94,7 @@
               </div>
             } @else if (customerFormTab() === 'addresses') {
               <div class="customer-fields">
-                <label>Address Type <span>*</span>
+                <label><span class="label-line">Address Type <b class="req" aria-hidden="true">*</b></span>
                   <select formControlName="address_type"><option>Billing</option><option>Shipping</option><option>Office</option><option>Personal</option><option>Other</option></select>
                 </label>
                 <label class="field-wide">Address Line 1<input formControlName="address_line1" autocomplete="address-line1" /></label>
@@ -180,4 +170,4 @@
       </section>
     </div>
   }
-</main>
+</div>

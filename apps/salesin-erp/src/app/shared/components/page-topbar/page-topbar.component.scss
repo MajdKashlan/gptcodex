@@ -1,7 +1,8 @@
-  ok   topbar user menu text  ok   topbar gradient :host {
+:host {
   display: block;
-  position: relative;
-  z-index: 2;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .topbar {
@@ -70,7 +71,8 @@
   display: flex;
   font: inherit;
   gap: 5px;
-  padding: 8px 0;
+  min-height: 44px;
+  padding: 4px 0;
 }
 
 .user-menu-trigger:hover,
@@ -123,7 +125,7 @@
   display: block;
   font-size: 13px;
   padding: 10px;
-  text-align: left;
+  text-align: start;
   width: 100%;
 }
 

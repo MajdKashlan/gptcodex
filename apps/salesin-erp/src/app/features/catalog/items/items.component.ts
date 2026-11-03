@@ -1,32 +1,32 @@
-import { CommonModule } from '@angular/common';
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { finalize, forkJoin, fromEvent, merge, Observable, of, startWith, switchMap, timer } from 'rxjs';
-import { ErpNextAuthService } from '../../../core/auth/erpnext-auth.service';
+import { finalize, forkJoin } from 'rxjs';
+import { frappeErrorMessage } from '../../../core/http/frappe-error';
+import { NotificationService } from '../../../core/http/notification.service';
+import { downloadCsv } from '../../../core/utils/csv';
+import { todayIso } from '../../../core/utils/date';
+import { formatMoney } from '../../../core/utils/format';
 import { ErpNextItem } from '../../../models/item.models';
-import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
-import { PageTopbarAction, PageTopbarComponent } from '../../../shared/components/page-topbar/page-topbar.component';
+import { PagerComponent } from '../../../shared/components/pager/pager.component';
+import { AppDatePipe, QtyPipe } from '../../../shared/pipes/format.pipes';
 import { ErpNextItemDetails, ItemSearchMode, ItemStockLevel, ItemsService } from './items.service';
 
 @Component({
   selector: 'app-items',
-  imports: [CommonModule, ReactiveFormsModule, SidebarComponent, PageTopbarComponent],
+  imports: [ReactiveFormsModule, PagerComponent, AppDatePipe, QtyPipe],
   templateUrl: './items.component.html',
   styleUrl: './items.component.scss',
 })
 export class ItemsComponent implements OnInit {
-  private static readonly idleTimeoutMs = 60 * 60 * 1000;
   private readonly destroyRef = inject(DestroyRef);
-  private readonly auth = inject(ErpNextAuthService);
-  private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
   private readonly itemsService = inject(ItemsService);
+  private readonly notifications = inject(NotificationService);
 
-  protected readonly userName = computed(() => this.auth.currentUser()?.fullName || 'User');
-  protected readonly userImage = computed(() => this.auth.currentUser()?.imageUrl);
-  protected readonly topbarActions: PageTopbarAction[] = [{ id: 'logout', label: 'Logout' }];
+  protected readonly pageSize = 25;
+  protected readonly page = signal(1);
+  protected readonly total = signal(0);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly items = signal<ErpNextItem[]>([]);
@@ -42,8 +42,6 @@ export class ItemsComponent implements OnInit {
       ? this.items().find((item) => item.name === selectedName) ?? null
       : null;
   });
-  protected readonly logoutConfirmationOpen = signal(false);
-  protected readonly logoutLoading = signal(false);
   protected readonly newItemOpen = signal(false);
   protected readonly newItemTab = signal<'profile' | 'stock' | 'images'>('profile');
   protected readonly savingItem = signal(false);
@@ -89,26 +87,32 @@ export class ItemsComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    const session$: Observable<unknown> = this.auth.isAuthenticated()
-      ? of(null)
-      : this.auth.restoreSession();
-
-    session$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.startIdleLogoutTimer();
-        this.loadCatalog();
-      },
-      error: () => void this.router.navigate(['/login']),
-    });
+    this.loadCatalog();
   }
 
   protected search(): void {
+    this.page.set(1);
+    this.loadItems();
+  }
+
+  protected goToPage(page: number): void {
+    this.page.set(page);
     this.loadItems();
   }
 
   protected chooseCategory(category: string | null): void {
     this.selectedCategory.set(category);
+    this.page.set(1);
     this.loadItems();
+  }
+
+  protected exportCsv(): void {
+    const selected = this.items().filter((item) => this.selectedNames().has(item.name));
+    downloadCsv(`items-${todayIso()}.csv`, ['Item code', 'Name', 'Group', 'Barcode', 'Stock', 'UOM', 'Price', 'Currency'],
+      (selected.length ? selected : this.items()).map((item) => [
+        item.item_code, item.item_name, item.item_group ?? '', item.barcode ?? '', item.actual_qty ?? '', item.stock_uom,
+        item.standard_rate ?? '', item.price_currency ?? '',
+      ]));
   }
 
   protected chooseCategoryFromEvent(event: Event): void {
@@ -167,9 +171,12 @@ export class ItemsComponent implements OnInit {
           this.newItemOpen.set(false);
           this.selectedCategory.set(null);
           this.searchText.setValue('');
+          this.page.set(1);
           this.loadItems();
           if (priceWarning) {
             this.createNotice.set('Item created, but its selling price could not be saved. Check the selected price list and permissions.');
+          } else {
+            this.notifications.success('Item created.');
           }
         },
         error: (error: unknown) => this.createError.set(this.createItemError(error)),
@@ -248,6 +255,7 @@ export class ItemsComponent implements OnInit {
       .pipe(finalize(() => this.savingEdit.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
+          this.notifications.success(this.duplicatingItem() ? 'Item copy created.' : 'Item saved.');
           this.editItemOpen.set(false);
           this.duplicatingItem.set(false);
           this.loadItems();
@@ -293,6 +301,7 @@ export class ItemsComponent implements OnInit {
           this.deleteConfirmationOpen.set(false);
           this.editItemOpen.set(false);
           this.selectedNames.set(new Set());
+          this.notifications.success('Item deleted.');
           this.loadItems();
         },
         error: (error: unknown) => {
@@ -339,12 +348,6 @@ export class ItemsComponent implements OnInit {
       });
   }
 
-  protected handleTopbarAction(actionId: string): void {
-    if (actionId === 'logout') {
-      this.signOut();
-    }
-  }
-
   protected toggleAll(): void {
     this.selectedNames.set(this.allSelected() ? new Set() : new Set(this.items().map((item) => item.name)));
   }
@@ -365,31 +368,8 @@ export class ItemsComponent implements OnInit {
     this.searchMode.set(mode);
   }
 
-  protected formatPrice(price: number | undefined): string {
-    return price == null
-      ? 'N/A'
-      : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  }
-
-  protected signOut(): void {
-    this.logoutConfirmationOpen.set(true);
-  }
-
-  protected cancelSignOut(): void {
-    if (!this.logoutLoading()) {
-      this.logoutConfirmationOpen.set(false);
-    }
-  }
-
-  protected confirmSignOut(): void {
-    this.logoutLoading.set(true);
-    this.auth.logout().subscribe({
-      next: () => void this.router.navigate(['/login']),
-      error: () => {
-        this.logoutLoading.set(false);
-        this.error.set('Could not log out from ERPNext. Check your connection and try again.');
-      },
-    });
+  protected formatPrice(price: number | undefined, currency?: string): string {
+    return price == null ? '—' : formatMoney(price, currency);
   }
 
   private loadCatalog(): void {
@@ -398,7 +378,7 @@ export class ItemsComponent implements OnInit {
       categories: this.itemsService.loadCategories(),
       uoms: this.itemsService.loadUoms(),
       priceLists: this.itemsService.loadPriceLists(),
-      items: this.itemsService.search(this.currentSearch()),
+      items: this.itemsService.search(this.currentSearch(), this.page(), this.pageSize),
     })
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -413,25 +393,27 @@ export class ItemsComponent implements OnInit {
             this.newItemForm.controls.stockUom.setValue(uoms[0]);
             this.newItemForm.controls.salesUom.setValue(uoms[0]);
           }
-          this.items.set(items);
+          this.items.set(items.rows);
+          this.total.set(items.total);
           this.error.set(null);
           this.selectedNames.set(new Set());
         },
-        error: () => this.error.set('Items could not be loaded. Check your ERPNext permissions.'),
+        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
       });
   }
 
   private loadItems(): void {
     this.loading.set(true);
-    this.itemsService.search(this.currentSearch())
+    this.itemsService.search(this.currentSearch(), this.page(), this.pageSize)
       .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (items) => {
-          this.items.set(items);
+        next: ({ rows, total }) => {
+          this.items.set(rows);
+          this.total.set(total);
           this.selectedNames.set(new Set());
           this.error.set(null);
         },
-        error: () => this.error.set('Items could not be loaded. Check your ERPNext permissions.'),
+        error: (error: unknown) => this.error.set(frappeErrorMessage(error)),
       });
   }
 
@@ -449,22 +431,7 @@ export class ItemsComponent implements OnInit {
   }
 
   private createItemError(error: unknown): string {
-    const details = error as { error?: { _server_messages?: string; message?: string } };
-    const serverMessages = details.error?._server_messages;
-    if (serverMessages) {
-      try {
-        const entries = JSON.parse(serverMessages) as string[];
-        for (const entry of entries) {
-          const message = (JSON.parse(entry) as { message?: string }).message;
-          if (message) {
-            return message.replace(/<[^>]+>/g, '');
-          }
-        }
-      } catch {
-        return 'ERPNext could not complete this item operation. Check the item fields and your permissions.';
-      }
-    }
-    return details.error?.message || 'ERPNext could not complete this item operation. Check the item fields and your permissions.';
+    return frappeErrorMessage(error);
   }
 
   private createUomRow(uom = '', conversionFactor = 1) {
@@ -472,24 +439,5 @@ export class ItemsComponent implements OnInit {
       uom: [uom, Validators.required],
       conversionFactor: [conversionFactor, [Validators.required, Validators.min(0.000001)]],
     });
-  }
-
-  private startIdleLogoutTimer(): void {
-    merge(
-      fromEvent(document, 'pointerdown'),
-      fromEvent(document, 'pointermove'),
-      fromEvent(document, 'keydown'),
-      fromEvent(document, 'wheel'),
-      fromEvent(document, 'touchstart'),
-    )
-      .pipe(
-        startWith(null),
-        switchMap(() => timer(ItemsComponent.idleTimeoutMs)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe(() => this.auth.logout().subscribe({
-        next: () => void this.router.navigate(['/login']),
-        error: () => this.error.set('Your session expired, but ERPNext could not complete logout.'),
-      }));
   }
 }

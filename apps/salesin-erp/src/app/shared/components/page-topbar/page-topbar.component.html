@@ -1,22 +1,25 @@
 <header class="topbar">
   <div class="topbar-heading">
-    <button
-      class="navigation-toggle"
-      type="button"
-      [attr.aria-label]="i18n.t(sidebarState.isOpen() ? 'shell.closeNavigation' : 'shell.openNavigation')"
-      [attr.aria-expanded]="sidebarState.isOpen()"
-      aria-controls="app-sidebar"
-      (click)="sidebarState.toggle()"
-    >
-      <span aria-hidden="true">☰</span>
-    </button>
+    @if (showMenuButton()) {
+      <button
+        class="navigation-toggle"
+        type="button"
+        [attr.aria-label]="sidebarState.isOpen() ? 'Close navigation' : 'Open navigation'"
+        [attr.aria-expanded]="sidebarState.isOpen()"
+        aria-controls="app-sidebar"
+        (click)="sidebarState.toggle()"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+    }
     <h1>{{ title() }}</h1>
   </div>
   <div class="user-menu">
     <button
       class="user-menu-trigger"
       type="button"
-      [attr.aria-label]="i18n.t('shell.openUserMenu')"
+      aria-label="Open user menu"
+      aria-haspopup="menu"
       [attr.aria-expanded]="menuOpen()"
       (click)="toggleMenu()"
     >
@@ -28,9 +31,9 @@
       <span>{{ userName() }}</span><b aria-hidden="true">⌄</b>
     </button>
     @if (menuOpen()) {
-      <div class="user-menu-panel">
+      <div class="user-menu-panel" role="menu">
         @for (action of actions(); track action.id) {
-          <button type="button" (click)="selectAction(action.id)">{{ action.label }}</button>
+          <button type="button" role="menuitem" (click)="selectAction(action.id)">{{ action.label }}</button>
         }
       </div>
     }

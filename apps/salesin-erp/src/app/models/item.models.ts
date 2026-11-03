@@ -19,6 +19,8 @@ export interface ErpNextItem extends ErpNextDocument {
   /** Enriched from ERPNext Bin data; not normally returned by Item. */
   actual_qty?: number;
   warehouse?: string;
+  /** Currency of the displayed selling price (from Item Price). */
+  price_currency?: string;
 }
 
 export interface ErpNextItemPrice extends ErpNextDocument {

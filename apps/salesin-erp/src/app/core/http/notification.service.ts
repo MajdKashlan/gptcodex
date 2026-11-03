@@ -1,4 +1,3 @@
-import { Directionality } from '@angular/cdk/bidi';
 import { inject, Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { parseFrappeError } from './frappe-error';
@@ -13,7 +12,6 @@ import { parseFrappeError } from './frappe-error';
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly snackBar = inject(MatSnackBar);
-  private readonly directionality = inject(Directionality, { optional: true });
 
   success(message: string, durationMs = 3000): void {
     this.open(message, 'app-notification-success', durationMs);
@@ -34,14 +32,11 @@ export class NotificationService {
   }
 
   private open(message: string, panelClass: string, durationMs: number): void {
-    const direction = this.directionality?.value;
-
     this.snackBar.open(message, undefined, {
       duration: durationMs,
       panelClass: [panelClass],
       verticalPosition: 'bottom',
       horizontalPosition: 'center',
-      ...(direction === undefined ? {} : { direction }),
     });
   }
 }

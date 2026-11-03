@@ -1,34 +1,53 @@
-import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
-import { SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER } from '../../core/auth/auth.context';
-import { ErpNextAuthService } from '../../core/auth/erpnext-auth.service';
-import { SalesTaxService } from './sales-tax.service';
-import { ErpNextCustomer } from '../../models/customer.models';
-import { ErpNextListResponse } from '../../models/erpnext-document.models';
-import { ErpNextItem } from '../../models/item.models';
-import { ErpNextSalesOrder } from '../../models/sales-order.models';
+import { forkJoin, map, Observable, switchMap } from 'rxjs';
+import { FrappeApiService, Page } from '../../core/api/frappe-api.service';
+import { addDaysIso, todayIso } from '../../core/utils/date';
+import { SalesOrderItem } from '../../models/sales-order.models';
 import { SalesTaxesAndChargesTemplate } from '../../models/sales-tax.models';
+import { SalesTaxService } from './sales-tax.service';
+import {
+  CLOSED_STATUSES,
+  doctypeForType,
+  listFields,
+  mergePage,
+  SalesDocumentType,
+  SalesListRow,
+  SalesListView,
+  SalesSource,
+  SalesTab,
+  searchFilters,
+  sourcesForView,
+  tabFilter,
+  toListRow,
+} from './sales-documents';
 
 export interface OrderOptions {
-  customers: ErpNextCustomer[];
-  items: ErpNextItem[];
   companies: Array<{ name: string; default_currency?: string }>;
   priceLists: string[];
   warehouses: string[];
   taxTemplates: SalesTaxesAndChargesTemplate[];
 }
 
-export type SalesOrderData = Pick<
-  ErpNextSalesOrder,
-  'customer' | 'company' | 'transaction_date' | 'delivery_date' | 'currency' | 'selling_price_list' | 'set_warehouse' | 'taxes_and_charges' | 'items'
->;
-
-export type SalesDocumentType = 'Credit Note' | 'Invoice' | 'Order' | 'Quote';
-export type SalesListView = 'all' | 'credit-notes' | 'customer-orders' | 'invoices' | 'orders' | 'quotes';
+export interface SalesDocumentInput {
+  customer: string;
+  company: string;
+  /** Order / quote / invoice date. */
+  date: string;
+  /** Delivery date, valid-till or payment due date depending on the type. */
+  due: string;
+  currency: string;
+  selling_price_list: string;
+  set_warehouse?: string;
+  taxes_and_charges?: string;
+  po_no?: string;
+  remarks?: string;
+  payment_terms_template?: string;
+  items: SalesOrderItem[];
+}
 
 export interface SalesDocumentDetails {
   name: string;
+  doctype?: string;
   customer?: string;
   customer_name?: string;
   party_name?: string;
@@ -49,532 +68,330 @@ export interface SalesDocumentDetails {
   return_against?: string;
   is_return?: 0 | 1;
   docstatus?: 0 | 1 | 2;
-  items: ErpNextSalesOrder['items'];
+  status?: string;
+  order_type?: string;
+  net_total?: number;
+  total_taxes_and_charges?: number;
+  discount_amount?: number;
+  grand_total?: number;
+  rounded_total?: number;
+  outstanding_amount?: number;
+  advance_paid?: number;
+  per_billed?: number;
+  per_delivered?: number;
+  contact_display?: string;
+  address_display?: string;
+  owner?: string;
+  creation?: string;
+  modified?: string;
+  items: SalesOrderItem[];
+  taxes?: Array<{ description?: string; account_head?: string; rate?: number; tax_amount?: number; total?: number }>;
 }
 
-export interface SalesListRow {
-  name: string;
-  doctype: string;
-  documentType: string;
-  customer: string;
-  customer_name?: string;
-  company: string;
-  transaction_date: string;
-  delivery_date?: string;
-  currency?: string;
-  grand_total?: number;
-  status?: string;
-  docstatus?: 0 | 1 | 2;
-  order_type?: string;
-  outstanding_amount?: number;
-  is_return?: 0 | 1;
-  modified?: string;
+export interface ItemPricing {
+  item_name?: string;
+  uom?: string;
+  stock_uom?: string;
+  conversion_factor?: number;
+  price_list_rate?: number;
+  rate?: number;
+  discount_percentage?: number;
 }
 
-interface SalesListRecord {
-  name: string;
-  customer?: string;
-  customer_name?: string;
-  party_name?: string;
-  company: string;
-  transaction_date?: string;
-  posting_date?: string;
-  delivery_date?: string;
-  due_date?: string;
-  valid_till?: string;
-  currency?: string;
-  grand_total?: number;
-  status?: string;
-  docstatus?: 0 | 1 | 2;
-  order_type?: string;
-  outstanding_amount?: number;
-  is_return?: 0 | 1;
-  modified?: string;
+export interface TabCounts {
+  all: number;
+  open: number;
+  closed: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class OrdersService {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(ErpNextAuthService);
+  private readonly api = inject(FrappeApiService);
   private readonly taxService = inject(SalesTaxService);
 
-  list(query = '', pageSize = 200): Observable<ErpNextSalesOrder[]> {
-    const fields = [
-      'name',
-      'customer',
-      'customer_name',
-      'company',
-      'transaction_date',
-      'delivery_date',
-      'currency',
-      'grand_total',
-      'status',
-      'order_type',
-      'docstatus',
-      'modified',
-    ];
-    let params = new HttpParams()
-      .set('fields', JSON.stringify(fields))
-      .set('limit_page_length', String(pageSize))
-      .set('order_by', 'modified desc');
-    if (query.trim()) {
-      const term = `%${query.trim()}%`;
-      params = params.set('or_filters', JSON.stringify([
-        ['Sales Order', 'name', 'like', term],
-        ['Sales Order', 'customer', 'like', term],
-        ['Sales Order', 'customer_name', 'like', term],
-      ]));
+  /**
+   * One server-side page of a sales view. Single-doctype views use `limit_start`;
+   * the combined "All Sales" view fetches the newest `page × pageSize` rows of each
+   * doctype and merges them, which is exact for any page.
+   */
+  listPage(
+    view: SalesListView,
+    tab: SalesTab,
+    query: string,
+    page: number,
+    pageSize: number,
+    customer?: string,
+  ): Observable<Page<SalesListRow>> {
+    const sources = sourcesForView(view);
+    const argsFor = (source: SalesSource) => ({
+      fields: listFields(source),
+      filters: [
+        ...source.filters,
+        ...tabFilter(source, tab),
+        ...(customer ? [[source.doctype, source.customerField, '=', customer]] : []),
+      ],
+      orFilters: searchFilters(source, query),
+      orderBy: 'modified desc',
+    });
+
+    if (sources.length === 1) {
+      const source = sources[0];
+      return this.api
+        .getPage<Record<string, unknown>>(source.doctype, { ...argsFor(source), page, pageSize })
+        .pipe(map(({ rows, total }) => ({ rows: rows.map((row) => toListRow(source, row)), total })));
     }
-    return this.http
-      .get<ErpNextListResponse<ErpNextSalesOrder>>(this.auth.apiUrl('/api/resource/Sales Order'), {
-        params,
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
+
+    return forkJoin(sources.map((source) => forkJoin({
+      rows: this.api
+        .getList<Record<string, unknown>>(source.doctype, { ...argsFor(source), pageLength: page * pageSize })
+        .pipe(map((rows) => rows.map((row) => toListRow(source, row)))),
+      total: this.api.getCount(source.doctype, argsFor(source).filters, argsFor(source).orFilters),
+    }))).pipe(map((results) => ({
+      rows: mergePage(results.map((result) => result.rows), page, pageSize),
+      total: results.reduce((sum, result) => sum + result.total, 0),
+    })));
+  }
+
+  /** All / Open / Closed counts for the tabs, one grouped query per doctype. */
+  tabCounts(view: SalesListView, query: string): Observable<TabCounts> {
+    return forkJoin(sourcesForView(view).map((source) => this.api
+      .getList<{ status: string; count: number }>(source.doctype, {
+        fields: ['status', 'count(name) as count'],
+        filters: source.filters,
+        orFilters: searchFilters(source, query),
+        groupBy: 'status',
+        orderBy: 'status asc',
+        pageLength: 0,
       })
-      .pipe(map((response) => response.data ?? []));
+      .pipe(map((rows) => rows.reduce((counts, row) => {
+        const count = Number(row.count) || 0;
+        counts.all += count;
+        if (CLOSED_STATUSES[source.doctype].includes(row.status)) counts.closed += count;
+        else counts.open += count;
+        return counts;
+      }, { all: 0, open: 0, closed: 0 })))))
+      .pipe(map((list) => list.reduce(
+        (sum, c) => ({ all: sum.all + c.all, open: sum.open + c.open, closed: sum.closed + c.closed }),
+        { all: 0, open: 0, closed: 0 },
+      )));
   }
 
-  listByView(view: SalesListView, query = '', pageSize = 20): Observable<SalesListRow[]> {
-    const fetchLimit = Math.max(pageSize * 5, 200);
-    const salesOrders = () => this.listSalesRows(
-      'Sales Order', 'Order', 'transaction_date', 'delivery_date', ['customer', 'customer_name'], query, fetchLimit,
-      view === 'customer-orders' ? [['Sales Order', 'order_type', '=', 'Shopping Cart']] : [],
-    );
-    const invoices = (returns: 0 | 1 | null) => this.listSalesRows(
-      'Sales Invoice', 'Invoice', 'posting_date', 'due_date', ['customer', 'customer_name'], query, fetchLimit,
-      returns === null ? [] : [['Sales Invoice', 'is_return', '=', returns]],
-    );
-    const quotes = () => this.listSalesRows(
-      'Quotation', 'Quote', 'transaction_date', 'valid_till', ['party_name', 'customer_name'], query, fetchLimit,
-    );
-
-    switch (view) {
-      case 'credit-notes':
-        return invoices(1).pipe(map((rows) => rows.map((row) => ({ ...row, documentType: 'Credit Note' }))));
-      case 'customer-orders':
-      case 'orders':
-        return salesOrders();
-      case 'invoices':
-        return invoices(0);
-      case 'quotes':
-        return quotes();
-      case 'all':
-        return forkJoin({ orders: salesOrders(), invoices: invoices(null), quotes: quotes() }).pipe(
-          map(({ orders, invoices: invoiceRows, quotes: quoteRows }) => [...orders, ...invoiceRows, ...quoteRows]
-            .sort((left, right) => (right.modified ?? '').localeCompare(left.modified ?? ''))),
-        );
-    }
-  }
-
-  makeOrderFromQuote(name: string): Observable<{ name: string }> {
-    return this.createMappedDocument(
-      'erpnext.selling.doctype.quotation.quotation.make_sales_order',
-      'Sales Order',
-      name,
-    );
-  }
-
-  makeInvoiceFromOrder(name: string): Observable<{ name: string }> {
-    return this.createMappedDocument(
-      'erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice',
-      'Sales Invoice',
-      name,
-    );
-  }
-
-  makeCreditNoteFromInvoice(name: string): Observable<{ name: string }> {
-    return this.createMappedDocument(
-      'erpnext.accounts.doctype.sales_invoice.sales_invoice.make_return_doc',
-      'Sales Invoice',
-      name,
-    );
-  }
-
-  updateField(name: string, fieldname: string, value: unknown): Observable<ErpNextSalesOrder> {
-    return this.http.put<{ data: ErpNextSalesOrder }>(
-      this.auth.apiUrl('/api/resource/Sales Order/' + encodeURIComponent(name)),
-      { [fieldname]: value },
-      { withCredentials: true },
-    ).pipe(map((response) => response.data));
-  }
-
-  getSalesDocument(doctype: string, name: string): Observable<SalesDocumentDetails> {
-    return this.http.get<{ data: SalesDocumentDetails }>(
-      this.auth.apiUrl(`/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`),
-      { withCredentials: true },
-    ).pipe(map((response) => response.data));
-  }
-
-  downloadSalesDocumentPdf(doctype: string, name: string): Observable<Blob> {
-    const params = new HttpParams()
-      .set('doctype', doctype)
-      .set('name', name);
-    return this.http.get(this.auth.apiUrl('/api/method/frappe.utils.print_format.download_pdf'), {
-      params,
-      withCredentials: true,
-      responseType: 'blob',
+  loadOptions(): Observable<OrderOptions> {
+    return forkJoin({
+      companies: this.api.getList<{ name: string; default_currency?: string }>('Company', {
+        fields: ['name', 'default_currency'], orderBy: 'creation asc', pageLength: 0,
+      }),
+      priceLists: this.names('Price List', [['Price List', 'selling', '=', 1], ['Price List', 'enabled', '=', 1]]),
+      warehouses: this.names('Warehouse', [['Warehouse', 'is_group', '=', 0], ['Warehouse', 'disabled', '=', 0]]),
+      taxTemplates: this.taxService.listTemplates(''),
     });
   }
 
-  updateSalesDocument(
-    type: SalesDocumentType,
-    doctype: string,
-    name: string,
-    details: SalesOrderData & { po_no?: string; remarks?: string; payment_terms_template?: string },
-    returnAgainst?: string,
-  ): Observable<{ name: string }> {
-    const items = details.items.map((item) => ({ ...item }));
-    let payload: Record<string, unknown>;
-    if (type === 'Order') {
-      payload = {
-        customer: details.customer,
-        company: details.company,
-        transaction_date: details.transaction_date,
-        delivery_date: details.delivery_date,
-        currency: details.currency,
-        selling_price_list: details.selling_price_list,
-        set_warehouse: details.set_warehouse,
-        po_no: details.po_no,
-        remarks: details.remarks,
-        payment_terms_template: details.payment_terms_template,
-        taxes_and_charges: details.taxes_and_charges,
-        items,
-      };
-    } else if (type === 'Quote') {
-      payload = {
-        quotation_to: 'Customer',
-        party_name: details.customer,
-        customer_name: details.customer,
-        company: details.company,
-        transaction_date: details.transaction_date,
-        valid_till: details.delivery_date,
-        currency: details.currency,
-        selling_price_list: details.selling_price_list,
-        set_warehouse: details.set_warehouse,
-        po_no: details.po_no,
-        terms: details.remarks,
-        payment_terms_template: details.payment_terms_template,
-        taxes_and_charges: details.taxes_and_charges,
-        items,
-      };
-    } else {
-      payload = {
-        customer: details.customer,
-        company: details.company,
-        posting_date: details.transaction_date,
-        due_date: details.delivery_date,
-        currency: details.currency,
-        selling_price_list: details.selling_price_list,
-        set_warehouse: details.set_warehouse,
-        po_no: details.po_no,
-        remarks: details.remarks,
-        payment_terms_template: details.payment_terms_template,
-        taxes_and_charges: details.taxes_and_charges,
-        is_return: type === 'Credit Note' ? 1 : 0,
-        return_against: returnAgainst,
-        items: items.map((item) => ({ ...item, qty: type === 'Credit Note' ? -Math.abs(item.qty) : item.qty })),
-      };
-    }
-    return this.http.put<{ data: { name: string } }>(
-      this.auth.apiUrl(`/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`),
-      payload,
-      { withCredentials: true },
-    ).pipe(map((response) => response.data));
+  getDocument(doctype: string, name: string): Observable<SalesDocumentDetails> {
+    return this.api.getDoc<SalesDocumentDetails>(doctype, name);
   }
 
-  assign(name: string, user: string, doctype = 'Sales Order'): Observable<unknown> {
-    return this.http.post(
-      this.auth.apiUrl('/api/method/frappe.desk.form.assign_to.add'),
-      { doctype, name, assign_to: JSON.stringify([user]) },
-      { withCredentials: true },
-    );
+  /** Default currency / price list for a customer. */
+  customerDefaults(customer: string): Observable<{ default_currency?: string; default_price_list?: string }> {
+    return this.api.getDoc<{ default_currency?: string; default_price_list?: string }>('Customer', customer);
   }
 
-  changeStatus(name: string, action: 'submit' | 'cancel'): Observable<unknown> {
-    return this.changeDocumentStatus('Sales Order', name, action);
+  /**
+   * Price, UOM and conversion exactly as ERPNext would set them: price list,
+   * customer-specific prices and pricing rules all apply.
+   */
+  itemPricing(args: {
+    itemCode: string;
+    doctype: string;
+    customer: string;
+    company: string;
+    currency: string;
+    priceList: string;
+    date: string;
+    qty: number;
+    uom?: string;
+    warehouse?: string;
+  }): Observable<ItemPricing> {
+    return this.api.call<ItemPricing>('erpnext.stock.get_item_details.get_item_details', {
+      args: {
+        item_code: args.itemCode,
+        doctype: args.doctype,
+        customer: args.customer || undefined,
+        company: args.company,
+        currency: args.currency,
+        conversion_rate: 1,
+        price_list: args.priceList,
+        price_list_currency: args.currency,
+        plc_conversion_rate: 1,
+        transaction_date: args.date,
+        posting_date: args.date,
+        qty: args.qty,
+        uom: args.uom || undefined,
+        warehouse: args.warehouse || undefined,
+        transaction_type: 'selling',
+        ignore_pricing_rule: 0,
+        is_pos: 0,
+        update_stock: 0,
+      },
+    });
   }
 
-  changeDocumentStatus(doctype: string, name: string, action: 'submit' | 'cancel'): Observable<unknown> {
-    return this.getSalesDocument(doctype, name).pipe(switchMap((document) => this.http.post(
-      this.auth.apiUrl('/api/method/frappe.client.' + action),
-      { doc: JSON.stringify(document) },
-      { withCredentials: true },
-    )));
+  create(type: SalesDocumentType, input: SalesDocumentInput): Observable<{ name: string }> {
+    return this.api.insert(doctypeForType(type), this.payload(type, input));
   }
 
-  delete(name: string): Observable<unknown> {
-    return this.http.delete(
-      this.auth.apiUrl('/api/resource/Sales Order/' + encodeURIComponent(name)),
-      { withCredentials: true },
-    );
+  update(type: SalesDocumentType, name: string, input: SalesDocumentInput, returnAgainst?: string): Observable<{ name: string }> {
+    return this.api.update(doctypeForType(type), name, {
+      ...this.payload(type, input),
+      ...(type === 'Credit Note' && returnAgainst ? { return_against: returnAgainst } : {}),
+    });
   }
 
-  duplicate(name: string): Observable<ErpNextSalesOrder> {
-    return this.get(name).pipe(switchMap((order) => {
-      const transactionDate = new Date().toISOString().slice(0, 10);
-      const deliveryDate = this.nextDay(transactionDate);
-      return this.create({
-        customer: order.customer,
-        company: order.company,
-        transaction_date: transactionDate,
-        delivery_date: deliveryDate,
-        currency: order.currency ?? 'USD',
-        selling_price_list: order.selling_price_list ?? '',
-        set_warehouse: order.set_warehouse,
-        taxes_and_charges: order.taxes_and_charges,
-        items: order.items.map((item) => ({
+  submit(doctype: string, name: string): Observable<void> {
+    return this.api.submit(doctype, name);
+  }
+
+  cancel(doctype: string, name: string): Observable<void> {
+    return this.api.cancel(doctype, name);
+  }
+
+  delete(doctype: string, name: string): Observable<void> {
+    return this.api.delete(doctype, name);
+  }
+
+  assign(doctype: string, name: string, user: string): Observable<unknown> {
+    return this.api.call('frappe.desk.form.assign_to.add', { doctype, name, assign_to: JSON.stringify([user]) });
+  }
+
+  downloadPdf(doctype: string, name: string): Observable<Blob> {
+    return this.api.downloadPdf(doctype, name);
+  }
+
+  makeOrderFromQuote(name: string): Observable<{ name: string }> {
+    return this.mapped('erpnext.selling.doctype.quotation.quotation.make_sales_order', 'Sales Order', name);
+  }
+
+  makeInvoiceFromOrder(name: string): Observable<{ name: string }> {
+    return this.mapped('erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice', 'Sales Invoice', name);
+  }
+
+  makeCreditNoteFromInvoice(name: string): Observable<{ name: string }> {
+    return this.mapped('erpnext.accounts.doctype.sales_invoice.sales_invoice.make_return_doc', 'Sales Invoice', name);
+  }
+
+  /** New draft with the same customer and lines, dated today. */
+  duplicate(doctype: string, name: string): Observable<{ name: string }> {
+    return this.getDocument(doctype, name).pipe(switchMap((doc) => {
+      const today = todayIso();
+      const due = doctype === 'Sales Invoice' ? today : addDaysIso(today, doctype === 'Quotation' ? 30 : 1);
+      const type: SalesDocumentType = doctype === 'Quotation' ? 'Quote' : doctype === 'Sales Order' ? 'Order'
+        : doc.is_return ? 'Credit Note' : 'Invoice';
+      return this.create(type, {
+        customer: doc.customer ?? doc.party_name ?? '',
+        company: doc.company,
+        date: today,
+        due,
+        currency: doc.currency ?? '',
+        selling_price_list: doc.selling_price_list ?? '',
+        set_warehouse: doc.set_warehouse,
+        taxes_and_charges: doc.taxes_and_charges,
+        po_no: doc.po_no,
+        remarks: doc.remarks ?? doc.terms,
+        payment_terms_template: doc.payment_terms_template,
+        items: doc.items.map((item) => ({
           item_code: item.item_code,
           item_name: item.item_name,
           description: item.description,
           warehouse: item.warehouse,
-          delivery_date: deliveryDate,
           uom: item.uom,
           conversion_factor: item.conversion_factor,
-          qty: item.qty,
+          qty: Math.abs(item.qty),
           rate: item.rate,
           discount_percentage: item.discount_percentage,
-          discount_amount: item.discount_amount,
         })),
       });
     }));
   }
 
-  addPayment(doctype: string, name: string, amount: number): Observable<unknown> {
-    return this.http.post<{ message: Record<string, unknown> }>(
-      this.auth.apiUrl('/api/method/erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry'),
-      { dt: doctype, dn: name, party_amount: amount },
-      { withCredentials: true },
-    ).pipe(switchMap(({ message }) => {
-      const payment = { ...message, paid_amount: amount, received_amount: amount };
-      return this.http.post(
-        this.auth.apiUrl('/api/resource/Payment Entry'),
-        payment,
-        { withCredentials: true },
-      );
+  private payload(type: SalesDocumentType, input: SalesDocumentInput): Record<string, unknown> {
+    const common = {
+      company: input.company,
+      currency: input.currency,
+      selling_price_list: input.selling_price_list,
+      set_warehouse: input.set_warehouse || undefined,
+      taxes_and_charges: input.taxes_and_charges || undefined,
+      po_no: input.po_no || undefined,
+      payment_terms_template: input.payment_terms_template || undefined,
+    };
+    const items = input.items.map((item) => ({
+      ...item,
+      warehouse: item.warehouse || input.set_warehouse || undefined,
+      ...(type === 'Order' ? { delivery_date: input.due } : {}),
+      qty: type === 'Credit Note' ? -Math.abs(item.qty) : item.qty,
     }));
-  }
 
-  loadOptions(): Observable<OrderOptions> {
-    return forkJoin({
-      customers: this.listRecords<ErpNextCustomer>('Customer', [
-        'name', 'customer_name', 'default_currency', 'default_price_list',
-      ], [['Customer', 'disabled', '=', 0]]),
-      items: this.listRecords<ErpNextItem>('Item', [
-        'name', 'item_code', 'item_name', 'stock_uom', 'standard_rate',
-      ], [['Item', 'disabled', '=', 0]]),
-      companies: this.listRecords<{ name: string; default_currency?: string }>('Company', ['name', 'default_currency']),
-      priceLists: this.listNames('Price List', [['Price List', 'selling', '=', 1]]),
-      warehouses: this.listNames('Warehouse', [['Warehouse', 'is_group', '=', 0]]),
-      taxTemplates: this.taxService.listTemplates(''),
-    });
-  }
-
-  get(name: string): Observable<ErpNextSalesOrder> {
-    return this.http
-      .get<{ data: ErpNextSalesOrder }>(
-        this.auth.apiUrl('/api/resource/Sales Order/' + encodeURIComponent(name)),
-        { withCredentials: true },
-      )
-      .pipe(map((response) => response.data));
-  }
-
-  create(details: SalesOrderData): Observable<ErpNextSalesOrder> {
-    return this.http
-      .post<{ data: ErpNextSalesOrder }>(this.auth.apiUrl('/api/resource/Sales Order'), details, {
-        withCredentials: true,
-      })
-      .pipe(map((response) => response.data));
-  }
-
-  createSalesDocument(type: SalesDocumentType, details: SalesOrderData & {
-    po_no?: string;
-    remarks?: string;
-    payment_terms_template?: string;
-  }): Observable<{ name: string }> {
-    const items = details.items.map((item) => ({ ...item }));
-    let doctype: string;
-    let payload: Record<string, unknown>;
-    if (type === 'Order') {
-      doctype = 'Sales Order';
-      payload = {
-        customer: details.customer,
-        company: details.company,
-        transaction_date: details.transaction_date,
-        delivery_date: details.delivery_date,
-        currency: details.currency,
-        selling_price_list: details.selling_price_list,
-        set_warehouse: details.set_warehouse,
-        po_no: details.po_no,
-        remarks: details.remarks,
-        payment_terms_template: details.payment_terms_template,
-        taxes_and_charges: details.taxes_and_charges,
-        items,
-      };
-    } else if (type === 'Quote') {
-      doctype = 'Quotation';
-      payload = {
-        quotation_to: 'Customer',
-        party_name: details.customer,
-        customer_name: details.customer,
-        company: details.company,
-        transaction_date: details.transaction_date,
-        valid_till: details.delivery_date,
-        currency: details.currency,
-        selling_price_list: details.selling_price_list,
-        set_warehouse: details.set_warehouse,
-        po_no: details.po_no,
-        terms: details.remarks,
-        payment_terms_template: details.payment_terms_template,
-        taxes_and_charges: details.taxes_and_charges,
-        items,
-      };
-    } else {
-      doctype = 'Sales Invoice';
-      payload = {
-        customer: details.customer,
-        company: details.company,
-        posting_date: details.transaction_date,
-        due_date: details.delivery_date,
-        currency: details.currency,
-        selling_price_list: details.selling_price_list,
-        set_warehouse: details.set_warehouse,
-        po_no: details.po_no,
-        remarks: details.remarks,
-        payment_terms_template: details.payment_terms_template,
-        taxes_and_charges: details.taxes_and_charges,
-        is_return: type === 'Credit Note' ? 1 : 0,
-        items: items.map((item) => ({ ...item, qty: type === 'Credit Note' ? -Math.abs(item.qty) : item.qty })),
-      };
-    }
-    return this.http.post<{ data: { name: string } }>(
-      this.auth.apiUrl('/api/resource/' + encodeURIComponent(doctype)),
-      payload,
-      { withCredentials: true },
-    ).pipe(map((response) => response.data));
-  }
-
-  update(name: string, details: SalesOrderData): Observable<ErpNextSalesOrder> {
-    return this.http
-      .put<{ data: ErpNextSalesOrder }>(
-        this.auth.apiUrl('/api/resource/Sales Order/' + encodeURIComponent(name)),
-        details,
-        { withCredentials: true },
-      )
-      .pipe(map((response) => response.data));
-  }
-
-  private listNames(doctype: string, filters: unknown[][]): Observable<string[]> {
-    return this.listRecords<{ name: string }>(doctype, ['name'], filters)
-      .pipe(map((records) => records.map((record) => record.name)));
-  }
-
-  private listSalesRows(
-    doctype: string,
-    documentType: string,
-    dateField: string,
-    dueDateField: string,
-    searchFields: string[],
-    query: string,
-    pageSize: number,
-    filters: unknown[][] = [],
-  ): Observable<SalesListRow[]> {
-    const fields = [
-      'name', ...new Set([...searchFields, 'company', dateField, dueDateField, 'currency', 'grand_total', 'status', 'docstatus', 'modified',
-        ...(doctype === 'Sales Invoice' ? ['outstanding_amount', 'is_return'] : []),
-        ...(doctype === 'Sales Order' ? ['order_type'] : [])]),
-    ];
-    let params = new HttpParams()
-      .set('fields', JSON.stringify(fields))
-      .set('limit_page_length', String(pageSize))
-      .set('order_by', 'modified desc');
-    if (filters.length) params = params.set('filters', JSON.stringify(filters));
-    if (query.trim()) {
-      const term = `%${query.trim()}%`;
-      params = params.set('or_filters', JSON.stringify([
-        [doctype, 'name', 'like', term],
-        ...searchFields.map((field) => [doctype, field, 'like', term]),
-      ]));
-    }
-    return this.http.get<ErpNextListResponse<SalesListRecord>>(
-      this.auth.apiUrl('/api/resource/' + encodeURIComponent(doctype)),
-      {
-        params,
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
-      },
-    ).pipe(map((response) => (response.data ?? []).map((record) => ({
-      name: record.name,
-      doctype,
-      documentType,
-      customer: record.customer ?? record.party_name ?? '',
-      customer_name: record.customer_name ?? record.party_name,
-      company: record.company,
-      transaction_date: record.transaction_date ?? record.posting_date ?? '',
-      delivery_date: record.delivery_date ?? record.due_date ?? record.valid_till,
-      currency: record.currency,
-      grand_total: record.grand_total,
-      status: record.status,
-      docstatus: record.docstatus,
-      order_type: record.order_type,
-      outstanding_amount: record.outstanding_amount,
-      is_return: record.is_return,
-      modified: record.modified,
-    }))));
-  }
-
-  private createMappedDocument(method: string, doctype: string, sourceName: string): Observable<{ name: string }> {
-    return this.http.post<{ message: Record<string, unknown> }>(
-      this.auth.apiUrl('/api/method/' + method),
-      { source_name: sourceName },
-      { withCredentials: true },
-    ).pipe(switchMap(({ message }) => {
-      const payload = doctype === 'Sales Order' ? this.ensureSalesOrderDeliveryDate(message) : message;
-      return this.http.post<{ data: { name: string } }>(
-        this.auth.apiUrl('/api/resource/' + encodeURIComponent(doctype)),
-        payload,
-        { withCredentials: true },
-      ).pipe(map((response) => response.data));
-    }));
-  }
-
-  private ensureSalesOrderDeliveryDate(document: Record<string, unknown>): Record<string, unknown> {
-    const transactionDate = typeof document['transaction_date'] === 'string' && document['transaction_date']
-      ? document['transaction_date']
-      : new Date().toISOString().slice(0, 10);
-    const existingDeliveryDate = typeof document['delivery_date'] === 'string' ? document['delivery_date'] : '';
-    const deliveryDate = existingDeliveryDate > transactionDate ? existingDeliveryDate : this.nextDay(transactionDate);
-    const items = Array.isArray(document['items']) ? document['items'].map((value) => {
-      if (!value || typeof value !== 'object') return value;
-      const item = value as Record<string, unknown>;
-      const itemDeliveryDate = typeof item['delivery_date'] === 'string' ? item['delivery_date'] : '';
+    if (type === 'Quote') {
       return {
-        ...item,
-        delivery_date: itemDeliveryDate > transactionDate ? itemDeliveryDate : deliveryDate,
+        ...common,
+        quotation_to: 'Customer',
+        party_name: input.customer,
+        transaction_date: input.date,
+        valid_till: input.due,
+        terms: input.remarks || undefined,
+        items,
       };
-    }) : [];
-    return { ...document, transaction_date: transactionDate, delivery_date: deliveryDate, items };
-  }
-
-  private nextDay(date: string): string {
-    const nextDate = new Date(`${date}T00:00:00Z`);
-    nextDate.setUTCDate(nextDate.getUTCDate() + 1);
-    return nextDate.toISOString().slice(0, 10);
-  }
-
-  private listRecords<T>(doctype: string, fields: string[], filters: unknown[][] = []): Observable<T[]> {
-    let params = new HttpParams()
-      .set('fields', JSON.stringify(fields))
-      .set('limit_page_length', '500')
-      .set('order_by', 'name asc');
-    if (filters.length) {
-      params = params.set('filters', JSON.stringify(filters));
     }
-    return this.http
-      .get<ErpNextListResponse<T>>(this.auth.apiUrl('/api/resource/' + encodeURIComponent(doctype)), {
-        params,
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_ERP_NEXT_UNAUTHORIZED_HANDLER, true),
-      })
-      .pipe(map((response) => response.data ?? []), catchError(() => of([])));
+    if (type === 'Order') {
+      return {
+        ...common,
+        customer: input.customer,
+        transaction_date: input.date,
+        delivery_date: input.due,
+        remarks: input.remarks || undefined,
+        items,
+      };
+    }
+    return {
+      ...common,
+      customer: input.customer,
+      posting_date: input.date,
+      set_posting_time: 1,
+      due_date: input.due,
+      remarks: input.remarks || undefined,
+      is_return: type === 'Credit Note' ? 1 : 0,
+      items,
+    };
+  }
+
+  /** Runs an ERPNext "make" mapper, then saves the mapped draft. */
+  private mapped(method: string, doctype: string, sourceName: string): Observable<{ name: string }> {
+    return this.api.call<Record<string, unknown>>(method, { source_name: sourceName }).pipe(
+      switchMap((doc) => this.api.insert<{ name: string }>(
+        doctype,
+        doctype === 'Sales Order' ? withValidDeliveryDate(doc) : doc,
+      )),
+    );
+  }
+
+  private names(doctype: string, filters: unknown[][]): Observable<string[]> {
+    return this.api
+      .getList<{ name: string }>(doctype, { fields: ['name'], filters, orderBy: 'name asc', pageLength: 0 })
+      .pipe(map((rows) => rows.map((row) => row.name)));
   }
 }
+
+/** Quote → Order mapping can carry a past delivery date; ERPNext rejects that. */
+function withValidDeliveryDate(doc: Record<string, unknown>): Record<string, unknown> {
+  const date = typeof doc['transaction_date'] === 'string' && doc['transaction_date'] ? doc['transaction_date'] : todayIso();
+  const current = typeof doc['delivery_date'] === 'string' ? doc['delivery_date'] : '';
+  const delivery = current >= date ? current : date;
+  const items = Array.isArray(doc['items'])
+    ? doc['items'].map((value) => {
+      const item = value as Record<string, unknown>;
+      const itemDate = typeof item['delivery_date'] === 'string' ? item['delivery_date'] : '';
+      return { ...item, delivery_date: itemDate >= date ? itemDate : delivery };
+    })
+    : [];
+  return { ...doc, transaction_date: date, delivery_date: delivery, items };
+}
+

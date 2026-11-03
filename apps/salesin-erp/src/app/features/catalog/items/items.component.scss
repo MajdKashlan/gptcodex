@@ -1,14 +1,42 @@
 :host {
   display: block;
-  min-height: 100dvh;
 }
 
 .items-shell {
-  background: #F2F2F2;
   color: #1C1C1C;
-  display: flex;
   font-size: 14px;
-  min-height: 100dvh;
+}
+
+.is-loading {
+  opacity: .6;
+}
+
+.num {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.negative {
+  color: var(--danger);
+}
+
+.disabled-tag {
+  background: #FDECEA;
+  border-radius: 999px;
+  color: var(--danger);
+  font-size: 11px;
+  margin-inline-start: 6px;
+  padding: 2px 6px;
+}
+
+.text-button {
+  background: transparent;
+  border: 0;
+  color: var(--brand-strong);
+  cursor: pointer;
+  font: inherit;
+  min-height: 36px;
+  text-decoration: underline;
 }
 
 .items-page {
@@ -224,7 +252,7 @@ th {
   font-size: 12px;
   font-weight: 600;
   height: 48px;
-  text-align: left;
+  text-align: start;
   white-space: nowrap;
 }
 
@@ -296,10 +324,6 @@ tbody tr.row-selected {
 .price-column {
   text-align: right;
   white-space: nowrap;
-}
-
-.price-uom {
-  color: #77818a;
 }
 
 .empty-state {
@@ -388,11 +412,6 @@ tbody tr.row-selected {
   color: #3b4558;
 }
 
-.confirm-button {
-  background: #0098c9;
-  color: #fff;
-}
-
 .notice-message {
   border-left: 3px solid #d98b00;
 }
@@ -469,12 +488,6 @@ tbody tr.row-selected {
   min-height: 0;
   overflow: auto;
   padding: 28px 24px;
-}
-
-.item-identifier {
-  color: #666666;
-  font-size: 12px;
-  margin: 0 0 24px;
 }
 
 .profile-fields {
@@ -837,5 +850,13 @@ tbody tr.row-selected {
   .image-fields p {
     grid-column: 1;
     grid-row: auto;
+  }
+}
+/* In the stacked (column) layout a flex-basis becomes a height; reset it. */
+@media (max-width: 900px) {
+  .search-controls,
+  .category-picker,
+  .search-field {
+    flex-basis: auto;
   }
 }

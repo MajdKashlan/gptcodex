@@ -1,36 +1,44 @@
-<button class="sidebar-backdrop" type="button" tabindex="-1" [attr.aria-label]="i18n.t('shell.closeNavigation')" (click)="sidebarState.close()"></button>
-<aside id="app-sidebar" class="sidebar" [attr.aria-hidden]="!sidebarState.isOpen()" [attr.inert]="sidebarState.isOpen() ? null : ''">
+@if (!docked()) {
+  <button class="sidebar-backdrop" type="button" tabindex="-1" aria-label="Close navigation" (click)="sidebarState.close()"></button>
+}
+<aside id="app-sidebar" class="sidebar" [attr.aria-hidden]="!visible()" [attr.inert]="visible() ? null : ''">
   <div class="sidebar-heading">
-    <a class="brand" routerLink="/" (click)="sidebarState.close()" aria-label="HMG Trading home">
+    <a class="brand" routerLink="/" (click)="navigated()" aria-label="HMG Trading home">
       <img src="assets/hmg-trading-logo.png" alt="HMG Trading" />
     </a>
-    <button class="sidebar-close" type="button" [attr.aria-label]="i18n.t('shell.closeNavigation')" (click)="sidebarState.close()">×</button>
+    @if (!docked()) {
+      <button class="sidebar-close" type="button" aria-label="Close navigation" (click)="sidebarState.close()">×</button>
+    }
   </div>
-  <nav [attr.aria-label]="i18n.t('shell.mainNavigation')">
-    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="sidebarState.close()">▣ <span>{{ i18n.t('nav.dashboard') }}</span></a>
-    <a href="#" (click)="sidebarState.close()">▦ <span>{{ i18n.t('nav.appointments') }}</span></a>
-    <a routerLink="/customers" routerLinkActive="active" (click)="sidebarState.close()">♟ <span>{{ i18n.t('nav.customers') }}</span></a>
-    <a routerLink="/items" routerLinkActive="active" (click)="sidebarState.close()">▤ <span>{{ i18n.t('nav.items') }}</span></a>
-    <a routerLink="/stock" routerLinkActive="active" (click)="sidebarState.close()">▥ <span>{{ i18n.t('nav.stock') }}</span></a>
-    <a routerLink="/payments" routerLinkActive="active" (click)="sidebarState.close()">◈ <span>{{ i18n.t('nav.payments') }}</span></a>
-    <button class="sales-nav-toggle" type="button" [attr.aria-expanded]="salesExpanded()" (click)="salesExpanded.set(!salesExpanded())">
-      <span class="nav-icon" aria-hidden="true">🛒</span><span>{{ i18n.t('nav.sales') }}</span><span class="nav-chevron" [class.expanded]="salesExpanded()" aria-hidden="true">›</span>
+  <nav aria-label="Main navigation">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▣</span><span>Dashboard</span>
+    </a>
+    <a routerLink="/customers" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">♟</span><span>Customers</span>
+    </a>
+    <a routerLink="/items" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▤</span><span>Items</span>
+    </a>
+    <button class="sales-nav-toggle" type="button" [attr.aria-expanded]="salesExpanded()" aria-controls="sales-subnav" (click)="salesExpanded.set(!salesExpanded())">
+      <span class="nav-icon" aria-hidden="true">🛒</span><span>Sales</span><span class="nav-chevron" [class.expanded]="salesExpanded()" aria-hidden="true">›</span>
     </button>
     @if (salesExpanded()) {
-      <div class="sales-subnav" [attr.aria-label]="i18n.t('shell.salesPages')">
-        <a routerLink="/sales" [queryParams]="{ view: 'all' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.allSales') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'credit-notes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.creditNotes') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'customer-orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.customerOrders') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'invoices' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.invoices') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'orders' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.orders') }}</a>
-        <a routerLink="/sales" [queryParams]="{ view: 'quotes' }" routerLinkActive="active" [routerLinkActiveOptions]="{ queryParams: 'exact' }" (click)="sidebarState.close()">{{ i18n.t('nav.quotes') }}</a>
+      <div id="sales-subnav" class="sales-subnav">
+        @for (link of salesLinks; track link.view) {
+          <a routerLink="/sales" [queryParams]="{ view: link.view }" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }" (click)="navigated()">{{ link.label }}</a>
+        }
       </div>
     }
-    <a href="#" (click)="sidebarState.close()">▧ <span>{{ i18n.t('nav.reports') }}</span></a>
-    <a href="#" (click)="sidebarState.close()">▣ <span>{{ i18n.t('nav.b2b') }}</span></a>
-    <a href="#" (click)="sidebarState.close()">⚙ <span>{{ i18n.t('nav.administration') }}</span></a>
-    <a href="#" (click)="sidebarState.close()">! <span>{{ i18n.t('nav.feedback') }}</span></a>
-    <a href="#" (click)="sidebarState.close()">? <span>{{ i18n.t('nav.help') }}</span></a>
+    <a routerLink="/payments" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">◈</span><span>Payments</span>
+    </a>
+    <a routerLink="/stock" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▥</span><span>Stock</span>
+    </a>
+    <a routerLink="/reports" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▧</span><span>Reports</span>
+    </a>
   </nav>
   <div class="sidebar-user">
     @if (userImage(); as image) {
@@ -39,13 +47,6 @@
       <span class="user-avatar user-avatar-fallback" aria-hidden="true">{{ userInitial() }}</span>
     }
     <span class="user-name">{{ userName() }}</span>
-    <button
-      class="language-toggle"
-      type="button"
-      [attr.aria-label]="i18n.t('shell.language')"
-      [attr.title]="i18n.t('shell.language')"
-      (click)="i18n.toggle()"
-    >{{ languageToggleLabel() }}</button>
-    <button type="button" (click)="signOut.emit()">{{ i18n.t('shell.logout') }}</button>
+    <button type="button" (click)="signOut.emit()">Log out</button>
   </div>
 </aside>
