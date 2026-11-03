@@ -1,0 +1,119 @@
+.app-shell {
+  background: var(--app-bg);
+  display: flex;
+  min-height: 100dvh;
+}
+
+.app-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-bottom: 24px;
+}
+
+.dialog-backdrop.shell-backdrop {
+  align-items: center;
+  background: rgb(18 36 39 / 48%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  position: fixed;
+  z-index: 950;
+}
+
+.password-dialog {
+  background: var(--surface);
+  border-radius: var(--radius-panel);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 22%);
+  max-height: calc(100dvh - 32px);
+  max-width: 440px;
+  overflow: auto;
+  padding: 22px;
+  width: 100%;
+}
+
+.password-dialog header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.icon-close {
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 26px;
+  height: 40px;
+  width: 40px;
+}
+
+.password-form {
+  display: grid;
+  gap: 14px;
+
+  label {
+    color: var(--text-secondary);
+    display: grid;
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  input {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    min-height: 42px;
+    padding: 8px 10px;
+  }
+}
+
+.field-error,
+.form-error {
+  color: var(--danger);
+}
+
+.form-error {
+  margin: 0;
+}
+
+.link-button {
+  background: transparent;
+  border: 0;
+  color: var(--brand-strong);
+  cursor: pointer;
+  justify-self: start;
+  padding: 4px 0;
+  text-decoration: underline;
+}
+
+.password-success {
+  color: var(--positive);
+  font-weight: 600;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+
+  button {
+    cursor: pointer;
+    flex: 0 1 auto;
+    padding: 0 16px;
+  }
+}

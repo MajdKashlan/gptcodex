@@ -1,0 +1,52 @@
+@if (!docked()) {
+  <button class="sidebar-backdrop" type="button" tabindex="-1" aria-label="Close navigation" (click)="sidebarState.close()"></button>
+}
+<aside id="app-sidebar" class="sidebar" [attr.aria-hidden]="!visible()" [attr.inert]="visible() ? null : ''">
+  <div class="sidebar-heading">
+    <a class="brand" routerLink="/" (click)="navigated()" aria-label="HMG Trading home">
+      <img src="assets/hmg-trading-logo.png" alt="HMG Trading" />
+    </a>
+    @if (!docked()) {
+      <button class="sidebar-close" type="button" aria-label="Close navigation" (click)="sidebarState.close()">×</button>
+    }
+  </div>
+  <nav aria-label="Main navigation">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▣</span><span>Dashboard</span>
+    </a>
+    <a routerLink="/customers" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">♟</span><span>Customers</span>
+    </a>
+    <a routerLink="/items" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▤</span><span>Items</span>
+    </a>
+    <button class="sales-nav-toggle" type="button" [attr.aria-expanded]="salesExpanded()" aria-controls="sales-subnav" (click)="salesExpanded.set(!salesExpanded())">
+      <span class="nav-icon" aria-hidden="true">🛒</span><span>Sales</span><span class="nav-chevron" [class.expanded]="salesExpanded()" aria-hidden="true">›</span>
+    </button>
+    @if (salesExpanded()) {
+      <div id="sales-subnav" class="sales-subnav">
+        @for (link of salesLinks; track link.view) {
+          <a routerLink="/sales" [queryParams]="{ view: link.view }" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }" (click)="navigated()">{{ link.label }}</a>
+        }
+      </div>
+    }
+    <a routerLink="/payments" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">◈</span><span>Payments</span>
+    </a>
+    <a routerLink="/stock" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▥</span><span>Stock</span>
+    </a>
+    <a routerLink="/reports" routerLinkActive="active" (click)="navigated()">
+      <span class="nav-icon" aria-hidden="true">▧</span><span>Reports</span>
+    </a>
+  </nav>
+  <div class="sidebar-user">
+    @if (userImage(); as image) {
+      <img class="user-avatar" [src]="image" alt="" />
+    } @else {
+      <span class="user-avatar user-avatar-fallback" aria-hidden="true">{{ userInitial() }}</span>
+    }
+    <span class="user-name">{{ userName() }}</span>
+    <button type="button" (click)="signOut.emit()">Log out</button>
+  </div>
+</aside>

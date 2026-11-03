@@ -1,0 +1,850 @@
+:root {
+    color-scheme: light;
+    --app-bg: #F2F2F2;
+    --surface: #fff;
+    --surface-raised: #fff;
+    --surface-soft: #F7FBFD;
+    --text-primary: #1C1C1C;
+    --text-secondary: #666666;
+    --text-muted: #8A8A8A;
+    --border: #E0E0E0;
+    --border-strong: #BDBDBD;
+    --brand: #019ED1;
+    --brand-strong: #0180AA;
+    --brand-soft: #EBFAFC;
+    --positive: #4CAF50;
+    --warning: #FF9800;
+    --danger: #F44336;
+    --sidebar-bg: #3C4251;
+    --sidebar-hover: #474E60;
+    --shadow-panel: 0 1px 3px rgb(26 53 56 / 7%), 0 8px 24px rgb(26 53 56 / 3%);
+    --radius-control: 6px;
+    --radius-panel: 8px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background: var(--app-bg);
+    font-size: 14px;
+    min-height: 100%;
+    min-width: 320px;
+    text-size-adjust: 100%;
+}
+
+body {
+    background: var(--app-bg);
+    color: var(--text-primary);
+    font-family: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    margin: 0;
+    min-height: 100dvh;
+    padding: 0;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button {
+    touch-action: manipulation;
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease, filter .15s ease, opacity .15s ease;
+}
+
+@media (hover: hover) {
+    button:hover:not(:disabled) {
+        filter: brightness(0.98);
+    }
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+:focus-visible {
+    outline: 3px solid rgb(1 158 209 / 40%);
+    outline-offset: 2px;
+}
+
+::selection {
+    background: #B3E5F5;
+    color: #17383a;
+}
+
+body :is(.shell, .customers-shell, .items-shell, .orders-shell, .stock-shell, .payments-shell) {
+    background: var(--app-bg);
+    color: var(--text-primary);
+    position: relative;
+}
+
+body :is(.page, .customers-page, .items-page, .orders-page, .stock-page, .payments-page) {
+    min-width: 0;
+}
+
+body :is(.customer-tools, .order-tools, .search-panel) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body :is(.customer-table-frame, .orders-table-frame, .table-frame, .stock-table-frame) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body :is(.widget, .customer-dialog, .order-dialog, .tool-dialog, .new-item-dialog, .stock-dialog, .confirm-dialog, .password-dialog) {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body :is(.order-dialog, .tool-dialog, .customer-dialog, .new-item-dialog, .confirm-dialog, .password-dialog) {
+    color: var(--text-primary);
+}
+
+body :is(.dialog-heading, .new-item-heading) {
+    background: var(--surface-soft);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+body :is(.dialog-heading h2, .new-item-heading h2, .password-dialog h2, .confirm-dialog h2) {
+    color: var(--text-primary);
+}
+
+body :is(.dialog-kicker, .dialog-heading .dialog-kicker) {
+    color: var(--text-secondary);
+}
+
+body :is(.primary-button, .new-item-button, .search-button, .save-button, .confirm-button, .dialog-action) {
+    background: var(--brand);
+    border: 1px solid var(--brand);
+    border-radius: var(--radius-control);
+    color: #fff;
+    font-weight: 600;
+    min-height: 40px;
+}
+
+body :is(.primary-button, .new-item-button, .search-button, .save-button, .confirm-button, .dialog-action):hover:not(:disabled) {
+    background: var(--brand-strong);
+    border-color: var(--brand-strong);
+    box-shadow: 0 4px 12px rgb(1 158 209 / 22%);
+}
+
+body :is(.secondary-button, .close-button, .dialog-cancel) {
+    background: #F2F2F2;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    color: var(--text-primary);
+    min-height: 40px;
+}
+
+body :is(.secondary-button, .close-button, .dialog-cancel):hover:not(:disabled) {
+    background: #E0E0E0;
+    box-shadow: 0 3px 8px rgb(26 53 56 / 8%);
+}
+
+body :is(.order-search input, .order-fields input, .order-fields select, .order-fields textarea,
+    .customer-search input, .customer-fields input, .customer-fields select, .customer-fields textarea,
+    .category-picker select, .search-field input, .profile-fields input, .profile-fields select,
+    .image-fields input, .uom-field input, .sales-uom-row input, .sales-uom-row select) {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    color: var(--text-primary);
+    min-height: 40px;
+    padding: 8px 10px;
+}
+
+body :is(.order-search input:focus, .order-fields input:focus, .order-fields select:focus, .order-fields textarea:focus,
+    .customer-search input:focus, .customer-fields input:focus, .customer-fields select:focus, .customer-fields textarea:focus,
+    .category-picker select:focus, .search-field input:focus, .profile-fields input:focus, .profile-fields select:focus,
+    .image-fields input:focus, .uom-field input:focus, .sales-uom-row input:focus, .sales-uom-row select:focus) {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgb(1 158 209 / 14%);
+    outline: 0;
+}
+
+body :is(.order-search label, .order-fields label, .customer-search label, .customer-fields label,
+    .category-picker, .search-field, .profile-fields label, .image-fields label, .sales-uom-row label) {
+    color: var(--text-secondary);
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame, .widget:has(table)) {
+    overflow-x: auto;
+    scrollbar-color: #BDBDBD transparent;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) thead {
+    background: #F6F6F6;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) th {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) td,
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) th {
+    border-bottom-color: var(--border);
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) tbody tr:nth-child(odd) {
+    background: #FAFAFA;
+}
+
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) tbody tr:hover {
+    background: #E8F7FC;
+}
+
+body :is(.order-status, .status) {
+    background: var(--brand-soft);
+    border-radius: 999px;
+    color: var(--brand-strong);
+    font-weight: 600;
+    padding: 4px 9px;
+}
+
+body .order-status.closed-status {
+    background: #EFEFEF;
+    color: var(--text-secondary);
+}
+
+body .status.disabled-status {
+    background: #FDECEA;
+    color: var(--danger);
+}
+
+body :is(.dialog-backdrop) {
+    background: rgb(18 36 39 / 48%);
+    backdrop-filter: blur(3px);
+    padding: 16px;
+}
+
+body :is(.customer-tabs, .item-tabs) {
+    background: var(--surface);
+    border-bottom-color: var(--border);
+}
+
+body :is(.customer-tabs button, .item-tabs button) {
+    color: var(--brand-strong);
+}
+
+body :is(.customer-tabs button.active, .item-tabs button.active) {
+    border-bottom-color: var(--brand);
+}
+
+body :is(.empty-state, .status-message, .state-message, .dashboard-status) {
+    color: var(--text-secondary);
+}
+
+body .widget {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+body .widget header {
+    background: var(--surface-soft);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 10px 14px;
+}
+
+body .metric > strong {
+    color: var(--brand-strong);
+    font-size: 30px;
+    font-weight: 600;
+}
+
+body .metric > span,
+body .widget small,
+body .item-identifier,
+body .field-hint {
+    color: var(--text-muted);
+}
+
+body .sales-trend-widget {
+    grid-column: span 2;
+    min-height: 340px;
+}
+
+body .sales-trend-widget .trend-heading {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    justify-content: space-between;
+    min-height: 62px;
+    padding: 10px 16px;
+}
+
+body .trend-heading > div:first-child {
+    display: grid;
+    gap: 3px;
+}
+
+body .trend-heading b {
+    font-size: 14px;
+}
+
+body .trend-ranges {
+    background: #F2F2F2;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+}
+
+body .trend-ranges button {
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    min-height: 30px;
+    min-width: 40px;
+}
+
+body .trend-ranges button.active,
+body .trend-ranges button:hover {
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgb(26 53 56 / 12%);
+    color: var(--brand-strong);
+}
+
+body .trend-summary {
+    align-items: baseline;
+    display: flex;
+    gap: 28px;
+    padding: 14px 18px 0;
+}
+
+body .trend-summary div {
+    display: grid;
+    gap: 2px;
+}
+
+body .trend-summary strong {
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 650;
+}
+
+body .trend-summary span,
+body .trend-detail,
+body .trend-axis {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+body .trend-chart {
+    padding: 4px 16px 0;
+}
+
+body .trend-chart svg {
+    display: block;
+    height: 190px;
+    overflow: visible;
+    width: 100%;
+}
+
+body .trend-grid {
+    fill: none;
+    stroke: var(--border);
+    stroke-dasharray: 3 5;
+    stroke-width: 1;
+}
+
+body .trend-area {
+    fill: url(#sales-trend-fill);
+}
+
+body .trend-line {
+    fill: none;
+    stroke: var(--brand);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+}
+
+body .trend-point {
+    cursor: crosshair;
+    fill: var(--brand);
+    stroke: #fff;
+    stroke-width: 2;
+    transition: r 120ms ease, fill 120ms ease;
+    vector-effect: non-scaling-stroke;
+}
+
+body .trend-point:hover,
+body .trend-point:focus,
+body .trend-point.selected {
+    fill: #FF9800;
+    outline: none;
+    r: 7;
+}
+
+body .trend-axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2px;
+}
+
+body .trend-detail {
+    align-items: center;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    margin: 10px 16px 0;
+    min-height: 35px;
+    padding-top: 6px;
+}
+
+body .trend-detail strong {
+    color: var(--text-primary);
+}
+
+body .trend-empty {
+    color: var(--text-muted);
+    padding: 50px 0;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    body :is(.customer-tools, .order-tools, .search-panel) {
+        gap: 14px;
+        margin: 16px;
+        padding: 16px;
+    }
+
+    body :is(.customer-table-frame, .orders-table-frame, .table-frame) {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+}
+
+@media (max-width: 700px) {
+    body :is(.shell, .customers-shell, .items-shell, .orders-shell, .stock-shell, .payments-shell) {
+        min-height: 100dvh;
+        width: 100%;
+    }
+
+    body :is(.order-tools, .customer-tools, .search-panel) {
+        margin: 12px;
+        padding: 14px;
+    }
+
+    body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame, .payments-table-frame) {
+        margin-left: 12px;
+        margin-right: 12px;
+    }
+
+    body :is(.order-dialog, .tool-dialog, .customer-dialog, .new-item-dialog, .stock-dialog, .payment-dialog) {
+        max-height: calc(100dvh - 20px);
+        width: calc(100vw - 20px);
+    }
+
+    body :is(.order-dialog .dialog-actions, .customer-dialog .dialog-actions, .new-item-actions, .stock-dialog .dialog-actions, .payment-dialog .dialog-actions) {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    body :is(.order-dialog .dialog-actions button, .customer-dialog .dialog-actions button, .new-item-actions button, .stock-dialog .dialog-actions button, .payment-dialog .dialog-actions button) {
+        flex: 1 1 120px;
+        min-width: 0;
+    }
+
+    body .new-item-actions {
+        height: auto;
+        min-height: 58px;
+    }
+
+    body .sales-trend-widget {
+        grid-column: 1;
+    }
+
+    body .sales-trend-widget .trend-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    body .trend-chart svg {
+        height: 170px;
+    }
+
+    body .trend-summary {
+        gap: 20px;
+        padding-left: 14px;
+    }
+
+    body .trend-chart {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+    }
+}
+/* --- Notifications (see core/http/notification.service.ts) --------------- */
+.app-notification-success,
+.app-notification-info,
+.app-notification-error {
+    --mdc-snackbar-container-color: var(--sidebar-bg);
+    --mdc-snackbar-supporting-text-color: #ffffff;
+    --mat-snack-bar-button-color: #ffffff;
+    border-radius: var(--radius-control);
+    font-weight: 600;
+}
+
+.app-notification-error {
+    --mdc-snackbar-container-color: var(--danger);
+}
+
+.app-notification-success {
+    --mdc-snackbar-container-color: var(--positive);
+}
+/* --- Shared form-dialog scaffolding ------------------------------------- */
+/* Promoted from the per-feature copies (.dialog-content, .field-wide,
+   .form-error, .visually-hidden, .tool-actions) so that new modules do not
+   duplicate them. Component-scoped rules still win for existing features. */
+.dialog-fields {
+    align-items: end;
+    display: grid;
+    gap: 24px 28px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog-fields label {
+    color: var(--brand);
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    gap: 7px;
+    min-width: 0;
+}
+
+.dialog-fields label span {
+    color: var(--danger);
+}
+
+.dialog-fields input,
+.dialog-fields select,
+.dialog-fields textarea {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--border-strong);
+    border-radius: 0;
+    color: var(--text-primary);
+    font: inherit;
+    min-height: 34px;
+    outline: 0;
+    padding: 5px 3px;
+    width: 100%;
+}
+
+.dialog-fields textarea {
+    min-height: 74px;
+    padding: 8px 4px;
+    resize: vertical;
+}
+
+.dialog-fields input:focus,
+.dialog-fields select:focus,
+.dialog-fields textarea:focus {
+    border-bottom: 2px solid var(--brand);
+}
+
+.dialog-fields .field-wide {
+    grid-column: 1 / -1;
+}
+
+.dialog-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 30px;
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-width: thin;
+}
+
+.dialog-close {
+    background: transparent;
+    border: 0;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 24px;
+}
+
+.form-error,
+.error-message {
+    color: var(--danger);
+}
+
+.form-error {
+    margin: 20px 0 0;
+}
+
+.visually-hidden {
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+.tool-actions {
+    align-items: center;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 12px;
+    white-space: nowrap;
+}
+/* --- Layout integration (see shared/layout/shell.component) ------------- */
+/* Feature pages render inside the shell, which owns the full-height layout. */
+body .app-content :is(.shell, .customers-shell, .items-shell, .orders-shell, .stock-shell, .payments-shell) {
+    display: block;
+    min-height: 0;
+}
+
+/* Page dialogs must sit above the sticky top bar and docked sidebar. */
+body .app-content .dialog-backdrop {
+    z-index: 900;
+}
+
+a.primary-button,
+a.secondary-button {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.danger-button,
+body .danger-button {
+    background: var(--danger);
+    border-color: var(--danger);
+}
+
+.status-message {
+    margin: 12px 24px;
+}
+
+.warning-message {
+    background: #FFF4E5;
+    border-left: 3px solid var(--warning);
+    color: #7A4A00;
+    padding: 10px 14px;
+    text-align: start;
+}
+
+.error-message {
+    color: var(--danger);
+}
+
+.page-heading {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    justify-content: space-between;
+    padding: 20px 24px 8px;
+
+    h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+    }
+}
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+.clickable-row {
+    cursor: pointer;
+}
+
+.row-selected,
+body :is(.orders-table-frame, .customer-table-frame, .table-frame, .stock-table-frame) tbody tr.row-selected {
+    background: var(--brand-soft);
+}
+
+/* --- Responsive data tables ---------------------------------------------- */
+/* Tables marked .data-table become stacked cards on phones. Each <td> needs a
+   data-label; .card-title / .card-status / .card-check place the card header. */
+@media (max-width: 760px) {
+    body .data-table {
+        border-collapse: separate;
+        display: block;
+        min-width: 0 !important;
+        width: 100%;
+    }
+
+    body .data-table thead {
+        display: none;
+    }
+
+    body .data-table tbody {
+        display: block;
+    }
+
+    body .data-table tr {
+        background: var(--surface) !important;
+        border-bottom: 1px solid var(--border);
+        display: grid;
+        gap: 4px 10px;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        padding: 12px 14px;
+    }
+
+    body .data-table td {
+        align-items: baseline;
+        border: 0 !important;
+        display: flex;
+        gap: 12px;
+        grid-column: 1 / -1;
+        justify-content: space-between;
+        min-width: 0 !important;
+        padding: 1px 0 !important;
+        text-align: end;
+        white-space: normal;
+        width: auto !important;
+    }
+
+    body .data-table td[data-label]::before {
+        color: var(--text-muted);
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-size: 12px;
+        text-align: start;
+    }
+
+    body .data-table td.card-check {
+        align-self: center;
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    body .data-table td.card-title {
+        font-size: 15px;
+        font-weight: 600;
+        grid-column: 2;
+        grid-row: 1;
+        justify-content: flex-start;
+        overflow-wrap: anywhere;
+        text-align: start;
+    }
+
+    body .data-table td.card-status {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    body .data-table td.card-title::before,
+    body .data-table td.card-status::before,
+    body .data-table td.card-image::before {
+        display: none;
+    }
+
+    body .data-table td.card-image {
+        display: none;
+    }
+
+    body .data-table td.table-actions,
+    body .data-table td.card-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-start;
+        padding-top: 6px !important;
+    }
+
+    body .data-table td.table-actions:empty,
+    body .data-table td.card-actions:empty {
+        display: none;
+    }
+
+    body .data-table tr.empty-row {
+        display: block;
+    }
+
+    body .data-table tr.empty-row td {
+        justify-content: center;
+        text-align: center;
+    }
+
+    body .data-table .row-action,
+    body .data-table .row-edit-button {
+        border: 1px solid var(--border-strong) !important;
+        border-radius: var(--radius-control);
+        min-height: 36px;
+    }
+
+    .status-message {
+        margin: 12px;
+    }
+
+    .page-heading {
+        padding: 14px 12px 6px;
+    }
+}
+
+/* Touch devices: comfortable hit targets for inputs and buttons. */
+@media (pointer: coarse) {
+    body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+        font-size: 16px; /* prevents iOS zoom-on-focus */
+        min-height: 44px;
+    }
+
+    body :is(.primary-button, .secondary-button, .row-action) {
+        min-height: 44px;
+    }
+}
+
+/* Required-field marker kept on the same line as its label. */
+body label .label-line,
+body button .label-line {
+    color: inherit !important;
+    display: block;
+}
+
+body .req {
+    color: var(--danger);
+    font-weight: 400;
+}

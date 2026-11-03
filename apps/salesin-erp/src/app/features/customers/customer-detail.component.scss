@@ -1,0 +1,275 @@
+:host {
+  display: block;
+}
+
+.customer-page {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 16px 24px 24px;
+}
+
+.breadcrumb {
+  color: var(--text-secondary);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+
+  a {
+    color: var(--brand-strong);
+    text-decoration: none;
+  }
+}
+
+.customer-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  justify-content: space-between;
+  padding: 16px 20px;
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 2px 0;
+  }
+}
+
+.kicker {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.flag {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-inline-start: 8px;
+  padding: 2px 8px;
+
+  &.danger { background: #FDECEA; color: var(--danger); }
+  &.warn { background: #FFF4E5; color: #B26A00; }
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  a,
+  button {
+    cursor: pointer;
+    padding: 0 14px;
+  }
+}
+
+.stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.stat {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+
+  span {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  strong {
+    font-size: 18px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .due {
+    color: var(--danger);
+  }
+}
+
+.info-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.info-card {
+  padding: 14px 16px;
+
+  p {
+    margin: 4px 0;
+  }
+
+  a {
+    color: var(--brand-strong);
+  }
+
+  .strong {
+    font-weight: 600;
+  }
+}
+
+h3 {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+dl {
+  display: grid;
+  gap: 6px 12px;
+  grid-template-columns: auto 1fr;
+  margin: 0;
+
+  dt { color: var(--text-secondary); }
+  dd { margin: 0; text-align: end; }
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.documents {
+  overflow: hidden;
+}
+
+.documents-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  padding: 14px 16px 0;
+
+  h3 { margin: 0; }
+}
+
+.doc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  button {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    min-height: 32px;
+    padding: 0 12px;
+
+    &.active {
+      background: var(--brand-soft);
+      border-color: var(--brand);
+      color: var(--brand-strong);
+    }
+  }
+}
+
+.docs-frame {
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
+.docs-frame table {
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 640px;
+  width: 100%;
+
+  th,
+  td {
+    border-bottom: 1px solid var(--border);
+    padding: 9px 14px;
+    text-align: start;
+  }
+
+  th {
+    background: #F6F6F6;
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+
+  a {
+    color: var(--brand-strong);
+    font-weight: 600;
+    text-decoration: none;
+  }
+}
+
+.num {
+  text-align: end !important;
+  white-space: nowrap;
+}
+
+.empty-state {
+  color: var(--text-muted);
+  padding: 24px !important;
+  text-align: center !important;
+}
+
+.status-chip {
+  background: var(--brand-soft);
+  border-radius: 999px;
+  color: var(--brand-strong);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+
+  &.closed { background: #EFEFEF; color: var(--text-secondary); }
+  &.draft { background: #FFF4E5; color: #B26A00; }
+}
+
+.is-loading {
+  opacity: .6;
+}
+
+@media (max-width: 1100px) {
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .customer-page {
+    padding: 12px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-actions {
+    width: 100%;
+
+    a,
+    button {
+      flex: 1 1 calc(50% - 8px);
+    }
+  }
+
+  .docs-frame table {
+    min-width: 0;
+  }
+}

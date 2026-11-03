@@ -1,0 +1,129 @@
+<div class="dashboard">
+  <div class="dashboard-heading">
+    <div>
+      <h2>Welcome back{{ firstName() ? ', ' + firstName() : '' }}</h2>
+      <p>{{ today }}</p>
+    </div>
+    <div class="quick-actions">
+      <a class="primary-button" routerLink="/sales" [queryParams]="{ view: 'orders', new: 'Order' }">+ Sales order</a>
+      <a class="secondary-button" routerLink="/sales" [queryParams]="{ view: 'invoices', new: 'Invoice' }">+ Invoice</a>
+      <a class="secondary-button" routerLink="/payments">Collect payment</a>
+      <button type="button" class="secondary-button" [disabled]="loading()" (click)="load()" aria-label="Refresh dashboard">↻</button>
+    </div>
+  </div>
+
+  @if (error(); as message) {
+    <p class="status-message error-message" role="alert">{{ message }}</p>
+  }
+  @if (dashboard()?.unavailable?.length) {
+    <p class="status-message warning-message" role="status">
+      Some figures could not be loaded: {{ dashboard()!.unavailable.join('; ') }}
+    </p>
+  }
+
+  <section class="kpis" aria-label="Key figures" [attr.aria-busy]="loading()">
+    <a class="kpi" routerLink="/sales" [queryParams]="{ view: 'orders' }">
+      <span>Sales this month</span>
+      <strong>{{ loading() ? '…' : money(dashboard()?.monthSales ?? 0) }}</strong>
+      <small>{{ dashboard()?.monthOrderCount ?? 0 }} submitted orders</small>
+    </a>
+    <a class="kpi" routerLink="/sales" [queryParams]="{ view: 'orders' }">
+      <span>Open orders</span>
+      <strong>{{ loading() ? '…' : (dashboard()?.openOrderCount ?? 0 | qty) }}</strong>
+      <small>{{ dashboard()?.draftOrderCount ?? 0 }} drafts · {{ dashboard()?.submittedOrderCount ?? 0 }} submitted</small>
+    </a>
+    <a class="kpi" routerLink="/payments">
+      <span>Receivables</span>
+      <strong>{{ loading() ? '…' : money(dashboard()?.outstanding ?? 0) }}</strong>
+      <small [class.danger-text]="(dashboard()?.overdueInvoiceCount ?? 0) > 0">{{ dashboard()?.overdueInvoiceCount ?? 0 }} overdue invoices</small>
+    </a>
+    <a class="kpi" routerLink="/customers">
+      <span>Customers / Items</span>
+      <strong>{{ loading() ? '…' : (dashboard()?.customerCount ?? 0 | qty) + ' / ' + (dashboard()?.itemCount ?? 0 | qty) }}</strong>
+      <small>active records</small>
+    </a>
+  </section>
+
+  <section class="dashboard-grid">
+    <article class="widget sales-trend-widget">
+      <header class="trend-heading">
+        <div><b>Sales order trend</b><small>Submitted order value by day · last {{ trendRange() }} days</small></div>
+        <div class="trend-ranges" role="group" aria-label="Sales trend date range">
+          @for (range of [7, 30, 90]; track range) {
+            <button type="button" [class.active]="trendRange() === range" [attr.aria-pressed]="trendRange() === range" (click)="setTrendRange($any(range))">{{ range }}D</button>
+          }
+        </div>
+      </header>
+      <div class="trend-summary">
+        <div><strong>{{ money(trendTotal()) }}</strong><span>Order value</span></div>
+        <div><strong>{{ trendOrderCount() }}</strong><span>Orders</span></div>
+      </div>
+      <div class="trend-chart">
+        @if (chartPoints().length) {
+          <svg viewBox="0 0 720 252" preserveAspectRatio="none" role="group" [attr.aria-label]="'Sales order trend for the last ' + trendRange() + ' days'">
+            <defs>
+              <linearGradient id="sales-trend-fill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#019ED1" stop-opacity=".22" />
+                <stop offset="100%" stop-color="#019ED1" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path class="trend-grid" d="M32 54H688 M32 96H688 M32 138H688 M32 180H688 M32 218H688" />
+            <path class="trend-area" [attr.d]="chartArea()" />
+            <polyline class="trend-line" [attr.points]="chartLine()" />
+            @for (point of chartPoints(); track point.date) {
+              <circle
+                class="trend-point"
+                [class.selected]="activeTrendPoint()?.date === point.date"
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                [attr.r]="point.orderCount ? 5 : 3"
+                [attr.tabindex]="point.orderCount ? 0 : -1"
+                role="button"
+                [attr.aria-label]="point.label + ': ' + money(point.total) + ', ' + point.orderCount + ' orders'"
+                (pointerenter)="inspectTrendPoint(point)"
+                (focus)="inspectTrendPoint(point)"
+                (click)="inspectTrendPoint(point)"
+              />
+            }
+          </svg>
+          <div class="trend-axis"><span>{{ chartPoints()[0].label }}</span><span>{{ chartPoints()[chartPoints().length - 1].label }}</span></div>
+        } @else {
+          <p class="trend-empty">{{ loading() ? 'Loading…' : 'Sales trend data is not available.' }}</p>
+        }
+      </div>
+      <div class="trend-detail" aria-live="polite">
+        @if (activeTrendPoint(); as point) {
+          <strong>{{ point.label }}</strong><span>{{ money(point.total) }} · {{ point.orderCount }} orders</span>
+        } @else {
+          <span>Tap or point to a day for details.</span>
+        }
+      </div>
+    </article>
+
+    <article class="widget list-widget">
+      <header><b>Top customers</b><small>Submitted orders · last 90 days</small></header>
+      <ol class="rank-list">
+        @for (customer of dashboard()?.topCustomers ?? []; track customer.customer) {
+          <li><a [routerLink]="['/customers', customer.customer]">{{ customer.name }}</a><strong>{{ money(customer.total) }}</strong></li>
+        } @empty {
+          <li class="empty">{{ loading() ? 'Loading…' : 'No sales in this period.' }}</li>
+        }
+      </ol>
+    </article>
+
+    <article class="widget list-widget">
+      <header><b>Popular items</b><small>Ordered quantity · last 90 days</small></header>
+      <ol class="rank-list">
+        @if (dashboard()?.popularItems === null) {
+          <li class="empty">Your role cannot read order item lines.</li>
+        } @else {
+          @for (item of dashboard()?.popularItems ?? []; track item.itemCode) {
+            <li><span>{{ item.name }}</span><strong>{{ item.quantity | qty }}</strong></li>
+          } @empty {
+            <li class="empty">{{ loading() ? 'Loading…' : 'No items ordered in this period.' }}</li>
+          }
+        }
+      </ol>
+    </article>
+  </section>
+</div>

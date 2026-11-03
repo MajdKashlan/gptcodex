@@ -1,0 +1,101 @@
+<div class="customer-page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/customers">Customers</a><span aria-hidden="true">›</span><span>{{ name() }}</span>
+  </nav>
+
+  @if (loading()) {
+    <p class="status-message" role="status">Loading customer…</p>
+  } @else if (error(); as message) {
+    <p class="status-message error-message" role="alert">{{ message }}</p>
+  } @else if (data(); as d) {
+    <header class="customer-header panel">
+      <div>
+        <span class="kicker">{{ d.customer.customer_type || 'Company' }} · {{ d.customer.customer_group }}</span>
+        <h2>{{ d.customer.customer_name }}</h2>
+        <span class="muted">{{ d.customer.name }}{{ d.customer.territory ? ' · ' + d.customer.territory : '' }}</span>
+        @if (d.customer.disabled) { <span class="flag danger">Disabled</span> }
+        @if (d.customer.on_hold) { <span class="flag warn">Credit hold</span> }
+        @if (d.customer.is_frozen) { <span class="flag warn">Frozen</span> }
+      </div>
+      <div class="header-actions">
+        <a class="primary-button" routerLink="/sales" [queryParams]="{ view: 'quotes', new: 'Quote', customer: d.customer.name }">+ Quote</a>
+        <a class="primary-button" routerLink="/sales" [queryParams]="{ view: 'orders', new: 'Order', customer: d.customer.name }">+ Order</a>
+        <a class="primary-button" routerLink="/sales" [queryParams]="{ view: 'invoices', new: 'Invoice', customer: d.customer.name }">+ Invoice</a>
+        <button type="button" class="secondary-button" (click)="edit()">Edit</button>
+      </div>
+    </header>
+
+    <section class="stats">
+      <div class="stat panel"><span>Outstanding</span><strong [class.due]="(stats()?.outstanding ?? 0) > 0">{{ stats() ? (stats()!.outstanding | money: currency()) : '…' }}</strong></div>
+      <div class="stat panel"><span>Overdue</span><strong [class.due]="(stats()?.overdue ?? 0) > 0">{{ stats() ? (stats()!.overdue | money: currency()) : '…' }}</strong></div>
+      <div class="stat panel"><span>Billed this year</span><strong>{{ stats() ? (stats()!.billedThisYear | money: currency()) : '…' }}</strong></div>
+      <div class="stat panel"><span>Billed all time</span><strong>{{ stats() ? (stats()!.billedAllTime | money: currency()) : '…' }}</strong></div>
+      <div class="stat panel"><span>Open orders</span><strong>{{ stats()?.openOrders ?? '…' }}</strong><small>Last invoice {{ stats()?.lastInvoice | appDate }}</small></div>
+    </section>
+
+    <section class="info-grid">
+      <div class="panel info-card">
+        <h3>Contact</h3>
+        @if (d.contact.first_name || d.contact.email || d.contact.mobile_phone || d.contact.business_phone) {
+          <p class="strong">{{ d.contact.first_name }} {{ d.contact.last_name }}</p>
+          @if (d.contact.email) { <p><a [href]="'mailto:' + d.contact.email">{{ d.contact.email }}</a></p> }
+          @if (d.contact.mobile_phone) { <p><a [href]="'tel:' + d.contact.mobile_phone">{{ d.contact.mobile_phone }}</a> <span class="muted">mobile</span></p> }
+          @if (d.contact.business_phone) { <p><a [href]="'tel:' + d.contact.business_phone">{{ d.contact.business_phone }}</a> <span class="muted">work</span></p> }
+        } @else {
+          <p class="muted">No primary contact.</p>
+        }
+      </div>
+      <div class="panel info-card">
+        <h3>Address</h3>
+        @if (d.address.address_line1) {
+          <p>{{ d.address.address_line1 }}</p>
+          @if (d.address.address_line2) { <p>{{ d.address.address_line2 }}</p> }
+          <p>{{ d.address.city }}{{ d.address.state ? ', ' + d.address.state : '' }} {{ d.address.pincode }}</p>
+          <p>{{ d.address.country }}</p>
+        } @else {
+          <p class="muted">No primary address.</p>
+        }
+      </div>
+      <div class="panel info-card">
+        <h3>Sales settings</h3>
+        <dl>
+          <dt>Currency</dt><dd>{{ d.customer.default_currency || 'Company default' }}</dd>
+          <dt>Price list</dt><dd>{{ d.customer.default_price_list || '—' }}</dd>
+          <dt>Payment terms</dt><dd>{{ d.customer.payment_terms || '—' }}</dd>
+          <dt>Tax ID</dt><dd>{{ d.customer.tax_id || '—' }}</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="panel documents">
+      <div class="documents-heading">
+        <h3>Sales documents</h3>
+        <nav class="doc-tabs" aria-label="Document type">
+          @for (tab of docTabs; track tab.view) {
+            <button type="button" [class.active]="docsView() === tab.view" (click)="setDocsView(tab.view)">{{ tab.label }}</button>
+          }
+        </nav>
+      </div>
+      <div class="docs-frame" [class.is-loading]="docsLoading()">
+        <table class="data-table">
+          <thead><tr><th>Document</th><th>Type</th><th>Date</th><th class="num">Total</th><th class="num">Outstanding</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (row of docs(); track row.key) {
+              <tr>
+                <td class="card-title" data-label="Document"><a [routerLink]="['/sales', row.doctype, row.name]">{{ row.name }}</a></td>
+                <td data-label="Type">{{ row.documentType }}</td>
+                <td data-label="Date">{{ row.date | appDate }}</td>
+                <td class="num" data-label="Total">{{ row.grand_total | money: row.currency }}</td>
+                <td class="num" data-label="Outstanding">{{ row.outstanding_amount != null ? (row.outstanding_amount | money: row.currency) : '—' }}</td>
+                <td class="card-status" data-label="Status"><span class="status-chip" [class.closed]="isClosedStatus(row.doctype, row.status)" [class.draft]="row.docstatus === 0">{{ statusLabel(row) }}</span></td>
+              </tr>
+            } @empty {
+              <tr class="empty-row"><td colspan="6" class="empty-state">{{ docsLoading() ? 'Loading…' : 'No documents yet.' }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager [page]="docsPage()" [pageSize]="pageSize" [total]="docsTotal()" [busy]="docsLoading()" (pageChange)="goToDocsPage($event)" />
+    </section>
+  }
+</div>

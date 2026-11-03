@@ -1,0 +1,59 @@
+<main class="login-page">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>SalesIn ERP</mat-card-title>
+      <mat-card-subtitle>Sign in to your ERPNext workspace</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (checkingSession()) {
+        <p class="hint" role="status">Checking your existing session…</p>
+      } @else {
+      <div class="mode-switch" role="group" aria-label="Authentication method">
+        <button matButton="tonal" [class.selected]="mode() === 'api-token'" (click)="selectMode('api-token')">
+          API token
+        </button>
+        <button matButton="tonal" [class.selected]="mode() === 'password'" (click)="selectMode('password')">
+          Password
+        </button>
+      </div>
+
+      @if (mode() === 'api-token') {
+        <form [formGroup]="tokenForm" (ngSubmit)="submit()">
+          <mat-form-field appearance="outline">
+            <mat-label>API key</mat-label>
+            <input matInput formControlName="apiKey" autocomplete="username" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>API secret</mat-label>
+            <input matInput type="password" formControlName="apiSecret" autocomplete="current-password" />
+          </mat-form-field>
+          <p class="hint">API-token sign-in is limited to this browser session. Use password sign-in for ERPNext cookie-based login.</p>
+          <button matButton="filled" type="submit" [disabled]="loading()">
+            {{ loading() ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </form>
+      } @else {
+        <form [formGroup]="passwordForm" (ngSubmit)="submit()">
+          <mat-form-field appearance="outline">
+            <mat-label>Email or username</mat-label>
+            <input matInput formControlName="username" autocomplete="username" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Password</mat-label>
+            <input matInput type="password" formControlName="password" autocomplete="current-password" />
+          </mat-form-field>
+          <p class="hint">ERPNext keeps your sign-in in a secure session cookie. Its lifetime is controlled by the ERPNext session expiry setting.</p>
+          <button matButton="filled" type="submit" [disabled]="loading()">
+            {{ loading() ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </form>
+      }
+
+      @if (errorMessage(); as error) {
+        <p class="error" role="alert">{{ error }}</p>
+      }
+      }
+    </mat-card-content>
+  </mat-card>
+</main>

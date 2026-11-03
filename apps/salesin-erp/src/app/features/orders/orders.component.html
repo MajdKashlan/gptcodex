@@ -1,0 +1,240 @@
+<div class="orders-shell">
+  <section class="orders-page">
+    <div class="sales-list-heading">
+      <h2>{{ viewTitle() }}</h2>
+      <span>{{ total() }} records</span>
+    </div>
+    <nav class="order-tabs" aria-label="Sales status filter">
+      <button type="button" [class.active]="tab() === 'all'" [attr.aria-pressed]="tab() === 'all'" (click)="setTab('all')">All <span>{{ counts().all }}</span></button>
+      <button type="button" [class.active]="tab() === 'open'" [attr.aria-pressed]="tab() === 'open'" (click)="setTab('open')">Open <span>{{ counts().open }}</span></button>
+      <button type="button" [class.active]="tab() === 'closed'" [attr.aria-pressed]="tab() === 'closed'" (click)="setTab('closed')">Closed <span>{{ counts().closed }}</span></button>
+    </nav>
+
+    <section class="order-tools" aria-label="Sales tools">
+      <form class="order-search" (submit)="$event.preventDefault(); search()">
+        <label for="order-search">Document or customer
+          <input id="order-search" type="search" [formControl]="searchText" placeholder="Search by number or customer" />
+        </label>
+        <button class="primary-button" type="submit" [disabled]="loading()">Search</button>
+      </form>
+      <div class="tool-actions">
+        <button class="secondary-button" type="button" [disabled]="loading()" (click)="load()" aria-label="Refresh list" title="Refresh">↻</button>
+        <button class="secondary-button" type="button" [disabled]="!rows().length" (click)="exportCsv()" title="Export the selected rows, or this page, as CSV">Export CSV</button>
+        <div class="add-document-menu">
+          <button class="primary-button add-document-trigger" type="button" aria-haspopup="menu" [attr.aria-expanded]="newMenuOpen()" (click)="newMenuOpen.set(!newMenuOpen())">+ New</button>
+          @if (newMenuOpen()) {
+            <div class="add-document-options" role="menu" aria-label="Create sales document">
+              <button type="button" role="menuitem" (click)="openNewDocument('Quote')">Quote</button>
+              <button type="button" role="menuitem" (click)="openNewDocument('Order')">Sales order</button>
+              <button type="button" role="menuitem" (click)="openNewDocument('Invoice')">Invoice</button>
+              <p class="menu-hint">Credit notes are created from a submitted invoice.</p>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (selectedRows().length) {
+      <section class="selection-bar" aria-label="Actions for selected documents">
+        <strong>{{ selectedRows().length }} selected</strong>
+        <div class="selection-actions">
+          <button type="button" [disabled]="busy() || !canSubmitSelected()" (click)="submitSelected()">Submit</button>
+          <button type="button" [disabled]="busy() || !canCancelSelected()" (click)="cancelSelected()">Cancel</button>
+          <button type="button" [disabled]="busy() || !canPaySelected()" (click)="openPayment()">Payment</button>
+          <button type="button" [disabled]="busy() || !singleSelected()" (click)="downloadSelectedPdf()">PDF</button>
+          <button type="button" [disabled]="busy() || !singleSelected()" (click)="duplicateSelected()">Duplicate</button>
+          <button type="button" [disabled]="busy()" (click)="openAssign()">Assign</button>
+          <button type="button" class="danger" [disabled]="busy() || !canDeleteSelected()" (click)="deleteSelected()">Delete</button>
+          <button type="button" class="link" (click)="toggleAll(false)">Clear</button>
+        </div>
+      </section>
+    }
+
+    @if (loadingDocument()) {
+      <p class="status-message" role="status">Loading document…</p>
+    }
+    @if (error(); as message) {
+      <p class="status-message error-message" role="alert">{{ message }} <button type="button" class="link-inline" (click)="load()">Try again</button></p>
+    } @else {
+      <div class="orders-table-frame" [class.is-loading]="loading()">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="checkbox-column"><input type="checkbox" [checked]="allSelected()" (change)="toggleAll($any($event.target).checked)" aria-label="Select all on this page" /></th>
+              <th>Document</th>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Due / Delivery</th>
+              <th>Customer</th>
+              <th class="amount-column">Total</th>
+              <th>Status</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.key) {
+              <tr class="clickable-row" [class.row-selected]="selected().has(row.key)" tabindex="0" (click)="openDetail(row)" (keydown.enter)="openDetail(row)">
+                <td class="checkbox-column card-check" (click)="$event.stopPropagation()"><input type="checkbox" [checked]="selected().has(row.key)" (change)="toggleRow(row, $any($event.target).checked)" [attr.aria-label]="'Select ' + row.name" /></td>
+                <td class="card-title" data-label="Document"><a [routerLink]="['/sales', row.doctype, row.name]" (click)="$event.stopPropagation()">{{ row.name }}</a></td>
+                <td data-label="Type">{{ typeLabel(row) }}</td>
+                <td data-label="Date">{{ row.date | appDate }}</td>
+                <td data-label="Due">{{ row.due | appDate }}</td>
+                <td class="customer-cell" data-label="Customer">{{ row.customer_name || row.customer }}</td>
+                <td class="amount-column" data-label="Total">{{ row.grand_total | money: row.currency }}</td>
+                <td class="card-status" data-label="Status"><span class="order-status" [class.closed-status]="isClosedStatus(row.doctype, row.status)" [class.draft-status]="row.docstatus === 0">{{ statusLabel(row) }}</span></td>
+                <td class="table-actions" (click)="$event.stopPropagation()">
+                  @if (row.docstatus === 0) {
+                    <button class="row-action" type="button" (click)="openEdit(row.doctype, row.name)">Edit</button>
+                  }
+                  @if (canMakeOrder(row)) {
+                    <button class="row-action" type="button" [disabled]="busyRowKey() === row.key" (click)="makeOrder(row)">To order</button>
+                  }
+                  @if (canMakeInvoice(row)) {
+                    <button class="row-action" type="button" [disabled]="busyRowKey() === row.key" (click)="makeInvoice(row)">To invoice</button>
+                  }
+                  @if (canReceivePayment(row)) {
+                    <button class="row-action" type="button" (click)="openPayment(row)">Payment</button>
+                  }
+                  @if (canMakeCreditNote(row)) {
+                    <button class="row-action" type="button" [disabled]="busyRowKey() === row.key" (click)="makeCreditNote(row)">Credit note</button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr class="empty-row"><td colspan="9" class="empty-state">{{ loading() ? 'Loading…' : 'No ' + viewTitle().toLowerCase() + ' found.' }}</td></tr>
+            }
+          </tbody>
+        </table>
+        <div class="list-footer">
+          <label class="page-size">Rows
+            <select [value]="pageSize()" (change)="changePageSize($any($event.target).value)">
+              @for (size of pageSizes; track size) { <option [value]="size">{{ size }}</option> }
+            </select>
+          </label>
+          <app-pager [page]="page()" [pageSize]="pageSize()" [total]="total()" [busy]="loading()" (pageChange)="goToPage($event)" />
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (dialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <section class="order-dialog" role="dialog" aria-modal="true" aria-labelledby="order-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">{{ editing() ? 'Edit draft ' + createType().toLowerCase() : 'New ' + createType().toLowerCase() }}</span>
+            <h2 id="order-dialog-title">{{ editing()?.name || 'New ' + createType() }}</h2>
+          </div>
+          <button class="dialog-close" type="button" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
+        </header>
+        <form [formGroup]="orderForm" (ngSubmit)="saveDocument()">
+          <div class="dialog-content">
+            <section class="form-section">
+              <div class="section-heading"><div><span>01</span><h3>Details</h3></div><p>Customer, company and dates</p></div>
+              <div class="order-fields">
+                <label class="field-wide"><span class="label-line">Customer <b class="req" aria-hidden="true">*</b></span>
+                  <app-link-input doctype="Customer" formControlName="customer" placeholder="Search customers…" (selected)="chooseCustomer($event)" />
+                </label>
+                <label><span class="label-line">Company <b class="req" aria-hidden="true">*</b></span>
+                  <select formControlName="company" (change)="chooseCompany($any($event.target).value)"><option value="" disabled>Select company</option>@for (company of options().companies; track company.name) {<option [value]="company.name">{{ company.name }}</option>}</select>
+                </label>
+                <label><span class="label-line">Currency <b class="req" aria-hidden="true">*</b></span><input formControlName="currency" /></label>
+                <label><span class="label-line">{{ dateLabel() }} <b class="req" aria-hidden="true">*</b></span><input type="date" formControlName="date" /></label>
+                <label><span class="label-line">{{ dueLabel() }} <b class="req" aria-hidden="true">*</b></span><input type="date" formControlName="due" [min]="orderForm.controls.date.value" /></label>
+                <label><span class="label-line">Price list <b class="req" aria-hidden="true">*</b></span>
+                  <select formControlName="selling_price_list"><option value="" disabled>Select price list</option>@for (priceList of options().priceLists; track priceList) {<option [value]="priceList">{{ priceList }}</option>}</select>
+                </label>
+                <label>Warehouse
+                  <select formControlName="set_warehouse"><option value="">Default</option>@for (warehouse of options().warehouses; track warehouse) {<option [value]="warehouse">{{ warehouse }}</option>}</select>
+                </label>
+                <label>Tax template
+                  <select formControlName="taxes_and_charges"><option value="">No tax</option>@for (template of taxTemplates(); track template.name) {<option [value]="template.name">{{ template.title || template.name }}</option>}</select>
+                </label>
+              </div>
+              <div class="document-extra-fields order-fields">
+                <label>Customer PO no.<input formControlName="po_no" placeholder="Purchase order reference" /></label>
+                @if (!editing()) {
+                  <label>Assign to<app-link-input doctype="User" formControlName="assigned_to" placeholder="Search users…" [filters]="{ enabled: 1 }" /></label>
+                }
+                <label>Payment terms<app-link-input doctype="Payment Terms Template" formControlName="payment_terms_template" placeholder="Search templates…" /></label>
+                <label class="notes-field">Notes<textarea formControlName="remarks" rows="3" placeholder="Notes for this document"></textarea></label>
+              </div>
+            </section>
+
+            <section class="form-section items-section">
+              <div class="section-heading section-heading-action">
+                <div><span>02</span><h3>Items</h3></div>
+                <button class="add-line-button" type="button" (click)="addItem()">+ Add item</button>
+              </div>
+              <div class="line-items">
+                @for (row of orderItems.controls; track $index; let index = $index) {
+                  <div class="line-item" [formGroup]="row">
+                    <label class="product-field"><span class="label-line">Item <b class="req" aria-hidden="true">*</b></span>
+                      <app-link-input doctype="Item" formControlName="item_code" placeholder="Search items…" [filters]="{ is_sales_item: 1, disabled: 0 }" (selected)="chooseItem(index, $event)" />
+                      @if (row.controls.item_name.value && row.controls.item_name.value !== row.controls.item_code.value) {
+                        <small class="item-hint">{{ row.controls.item_name.value }}{{ row.controls.uom.value ? ' · ' + row.controls.uom.value : '' }}</small>
+                      }
+                    </label>
+                    <label>Qty<input type="number" min="0.000001" step="any" inputmode="decimal" formControlName="qty" /></label>
+                    <label>Rate<input type="number" min="0" step="0.01" inputmode="decimal" formControlName="rate" /></label>
+                    <div class="line-total"><span>Amount</span><strong>{{ pricingLine() === index ? '…' : money(lineAmount(index)) }}</strong></div>
+                    <button class="remove-line-button" type="button" [disabled]="orderItems.length === 1" (click)="removeItem(index)" [attr.aria-label]="'Remove item line ' + (index + 1)">×</button>
+                  </div>
+                }
+              </div>
+              <div class="order-total"><span>Total before tax</span><strong>{{ money(orderTotal()) }}</strong></div>
+              <p class="field-hint">Taxes, discounts and the final total are calculated by ERPNext when you save.</p>
+            </section>
+
+            @if (formError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+          </div>
+          <footer class="dialog-actions">
+            <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">Cancel</button>
+            <button class="primary-button" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : editing() ? 'Save draft' : 'Save ' + createType().toLowerCase() }}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (toolDialog(); as dialog) {
+    <div class="dialog-backdrop" (click)="closeToolDialog()">
+      <section class="tool-dialog" role="dialog" aria-modal="true" aria-labelledby="tool-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">{{ selectedRows().length }} selected</span>
+            <h2 id="tool-dialog-title">{{ dialog === 'assign' ? 'Assign to user' : 'Record payment' }}</h2>
+          </div>
+          <button class="dialog-close" type="button" [disabled]="busy()" (click)="closeToolDialog()" aria-label="Close">×</button>
+        </header>
+        <div class="tool-dialog-content">
+          @if (dialog === 'assign') {
+            <label class="tool-field">ERPNext user
+              <app-link-input doctype="User" [formControl]="assignUser" placeholder="Search users…" [filters]="{ enabled: 1 }" />
+            </label>
+          } @else {
+            <p class="field-hint">Against {{ singleSelected()?.documentType }} {{ singleSelected()?.name }} · {{ singleSelected()?.customer_name || singleSelected()?.customer }}</p>
+            <form class="dialog-fields" [formGroup]="paymentForm" (ngSubmit)="savePayment()">
+              <label><span class="label-line">Amount <b class="req" aria-hidden="true">*</b></span><input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="amount" /></label>
+              <label><span class="label-line">Posting date <b class="req" aria-hidden="true">*</b></span><input type="date" formControlName="posting_date" /></label>
+              <label>Mode of payment
+                <select formControlName="mode_of_payment"><option value="">Default account</option>@for (mode of modesOfPayment(); track mode) {<option [value]="mode">{{ mode }}</option>}</select>
+              </label>
+              <label>Reference no.<input formControlName="reference_no" placeholder="Cheque / transfer no." /></label>
+              <label class="field-wide check-field"><input type="checkbox" formControlName="submit_now" /> Submit the payment now (otherwise saved as draft)</label>
+            </form>
+          }
+          @if (toolError(); as message) {
+            <p class="form-error" role="alert">{{ message }}</p>
+          }
+        </div>
+        <footer class="dialog-actions">
+          <button class="secondary-button" type="button" [disabled]="busy()" (click)="closeToolDialog()">Close</button>
+          <button class="primary-button" type="button" [disabled]="busy()" (click)="dialog === 'assign' ? saveAssign() : savePayment()">{{ busy() ? 'Saving…' : dialog === 'assign' ? 'Assign' : 'Save payment' }}</button>
+        </footer>
+      </section>
+    </div>
+  }
+</div>

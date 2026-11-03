@@ -1,0 +1,296 @@
+:host {
+  display: block;
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 100;
+}
+
+:host(.is-open) {
+  pointer-events: auto;
+}
+
+.sidebar-backdrop {
+  background: rgb(15 23 35 / 48%);
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity 220ms ease;
+  width: 100%;
+}
+
+:host(.is-open) .sidebar-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar {
+  background: var(--sidebar-bg);
+  bottom: 0;
+  box-shadow: 0 12px 34px rgb(0 0 0 / 24%);
+  display: flex;
+  flex-direction: column;
+  inset-inline-start: 0;
+  max-width: 86vw;
+  overflow-y: auto;
+  position: fixed;
+  top: 0;
+  transform: translateX(-105%);
+  transition: transform 220ms ease;
+  width: 280px;
+  z-index: 1;
+}
+
+:host(.is-open) .sidebar {
+  transform: translateX(0);
+}
+
+.sidebar-heading {
+  align-items: center;
+  border-bottom: 1px solid #474E60;
+  display: flex;
+  min-height: 60px;
+}
+
+.brand {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  height: 68px;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px 18px;
+  text-decoration: none;
+}
+
+.brand img {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.sidebar-close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  color: #fff;
+  flex: 0 0 44px;
+  font-size: 28px;
+  height: 44px;
+  margin-inline-end: 8px;
+  width: 44px;
+}
+
+.sidebar-close:hover {
+  background: var(--sidebar-hover);
+  border-radius: 6px;
+}
+
+nav {
+  padding-top: 8px;
+}
+
+nav a {
+  align-items: center;
+  min-height: 44px;
+  color: #ECEFF1;
+  display: flex;
+  border-radius: 6px;
+  font-size: 18px;
+  gap: 12px;
+  margin: 2px 9px;
+  min-height: 43px;
+  padding: 7px 12px;
+  text-decoration: none;
+}
+
+.sales-nav-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #ECEFF1;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  border-radius: 6px;
+  font-size: 18px;
+  gap: 12px;
+  margin: 2px 9px;
+  min-height: 43px;
+  padding: 7px 12px;
+  text-align: start;
+  width: calc(100% - 18px);
+}
+
+.sales-nav-toggle:hover {
+  background: var(--sidebar-hover);
+}
+
+.sales-nav-toggle > span:nth-child(2) {
+  font-size: 14px;
+}
+
+.nav-chevron {
+  font-size: 20px;
+  margin-inline-start: auto;
+  transform: rotate(0);
+  transition: transform 120ms ease;
+}
+
+.nav-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.sales-subnav {
+  display: grid;
+  padding: 0 0 6px;
+}
+
+.sales-subnav a {
+  align-items: center;
+  min-height: 44px;
+  color: #ECEFF1;
+  display: flex;
+  font-size: 13px;
+  border-radius: 5px;
+  margin: 1px 9px;
+  margin-inline-start: 18px;
+  min-height: 40px;
+  padding: 7px 8px;
+  padding-inline-start: 38px;
+  position: relative;
+  text-decoration: none;
+}
+
+.sales-subnav a::before {
+  content: '›';
+  font-size: 20px;
+  inset-inline-start: 14px;
+  position: absolute;
+}
+
+.sales-subnav a:hover,
+.sales-subnav a.active {
+  background: var(--sidebar-hover);
+  color: #8FE3FF;
+}
+
+nav a span:not(.nav-icon) {
+  font-size: 14px;
+}
+
+.nav-icon {
+  display: inline-flex;
+  font-size: 16px;
+  justify-content: center;
+  width: 20px;
+}
+
+nav a:hover,
+nav .active {
+  background: var(--sidebar-hover);
+}
+
+nav a.active,
+.sales-nav-toggle[aria-expanded="true"] {
+  color: #8FE3FF;
+}
+
+.sidebar-user {
+  align-items: center;
+  border-top: 1px solid #474E60;
+  color: #fff;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 34px 1fr;
+  margin-top: auto;
+  padding: 14px;
+}
+
+.user-avatar {
+  align-items: center;
+  background: #019ED1;
+  border-radius: 50%;
+  display: flex;
+  font-size: 15px;
+  font-weight: bold;
+  height: 32px;
+  justify-content: center;
+  object-fit: cover;
+  width: 32px;
+}
+
+.user-avatar-fallback {
+  color: #fff;
+}
+
+.user-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user button {
+  min-height: 36px;
+  background: transparent;
+  border: 1px solid #5A6478;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  grid-column: 1 / -1;
+  padding: 6px;
+}
+
+.sidebar-user button:hover {
+  background: var(--sidebar-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-backdrop {
+    transition-duration: .01ms;
+  }
+}
+
+/* The drawer remains full-size on small screens; it never leaves an icon rail. */
+@media (max-width: 700px) {
+  .sidebar {
+    width: min(280px, 86vw);
+  }
+}
+
+/* Docked: part of the page layout on wide screens, never hidden. */
+:host(.docked) {
+  flex: 0 0 248px;
+  height: 100dvh;
+  inset: auto;
+  pointer-events: auto;
+  position: sticky;
+  top: 0;
+  width: 248px;
+  z-index: 3;
+}
+
+:host(.docked) .sidebar {
+  box-shadow: none;
+  height: 100%;
+  max-width: none;
+  position: relative;
+  transform: none;
+  transition: none;
+  width: 100%;
+}
+
+:host(.docked) nav a,
+:host(.docked) .sales-nav-toggle {
+  font-size: 15px;
+}

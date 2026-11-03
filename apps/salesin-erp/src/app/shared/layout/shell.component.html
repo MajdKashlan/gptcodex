@@ -1,0 +1,51 @@
+<div class="app-shell" [class.is-docked]="docked()">
+  <app-sidebar [docked]="docked()" [userName]="userName()" [userImage]="userImage()" (signOut)="askSignOut()" />
+  <div class="app-main">
+    <app-page-topbar
+      [title]="title()"
+      [showMenuButton]="!docked()"
+      [userName]="userName()"
+      [userImage]="userImage()"
+      [actions]="topbarActions"
+      (actionSelected)="handleTopbarAction($event)"
+    />
+    <main class="app-content" id="main-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+@if (passwordDialogOpen()) {
+  <div class="dialog-backdrop shell-backdrop" (click)="closePasswordDialog()">
+    <section class="password-dialog" role="dialog" aria-modal="true" aria-labelledby="change-password-title" (click)="$event.stopPropagation()">
+      <header>
+        <h2 id="change-password-title">Change password</h2>
+        <button type="button" class="icon-close" aria-label="Close" (click)="closePasswordDialog()">×</button>
+      </header>
+      @if (passwordSuccess(); as message) {
+        <p class="password-success" role="status">{{ message }}</p>
+        <div class="dialog-actions"><button type="button" class="primary-button" (click)="closePasswordDialog()">Done</button></div>
+      } @else {
+        <form class="password-form" [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+          <label>Current password<input type="password" formControlName="oldPassword" autocomplete="current-password" /></label>
+          <label>New password<input type="password" formControlName="newPassword" autocomplete="new-password" />
+            @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('minlength')) {
+              <small class="field-error">Use at least 8 characters.</small>
+            }
+          </label>
+          <label>Confirm new password<input type="password" formControlName="confirmPassword" autocomplete="new-password" /></label>
+          @if (passwordError(); as error) {
+            <p class="form-error" role="alert">{{ error }}</p>
+          }
+          <button type="button" class="link-button" [disabled]="resetLoading() || passwordLoading()" (click)="requestPasswordReset()">
+            {{ resetLoading() ? 'Sending reset link…' : 'Forgot your current password?' }}
+          </button>
+          <div class="dialog-actions">
+            <button type="button" class="secondary-button" (click)="closePasswordDialog()">Cancel</button>
+            <button type="submit" class="primary-button" [disabled]="passwordLoading()">{{ passwordLoading() ? 'Changing…' : 'Change password' }}</button>
+          </div>
+        </form>
+      }
+    </section>
+  </div>
+}

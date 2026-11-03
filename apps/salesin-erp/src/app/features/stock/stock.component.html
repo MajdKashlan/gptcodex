@@ -1,0 +1,195 @@
+<div class="stock-shell">
+  <section class="stock-page">
+    <nav class="stock-tabs" aria-label="Stock views">
+      <button type="button" [class.active]="tab() === 'levels'" (click)="selectTab('levels')">Stock levels</button>
+      <button type="button" [class.active]="tab() === 'movements'" (click)="selectTab('movements')">Movements</button>
+      <button type="button" [class.active]="tab() === 'entries'" (click)="selectTab('entries')">Stock entries</button>
+    </nav>
+
+    <div class="stock-tools">
+      <form class="stock-filters" (submit)="$event.preventDefault(); applyFilters()">
+        <label>Warehouse
+          <select [formControl]="warehouseFilter" (change)="applyFilters()">
+            <option value="">All warehouses</option>
+            @for (warehouse of warehouses(); track warehouse) { <option [value]="warehouse">{{ warehouse }}</option> }
+          </select>
+        </label>
+        @if (tab() !== 'entries') {
+          <label>Item code
+            <input type="search" [formControl]="searchText" placeholder="Search item code" />
+          </label>
+          <button class="secondary-button" type="submit">Search</button>
+        }
+      </form>
+      <div class="tool-actions">
+        <button class="secondary-button" type="button" (click)="exportCsv()">Export CSV</button>
+        <button class="primary-button" type="button" (click)="openNewEntry()">+ Stock entry</button>
+      </div>
+    </div>
+
+    @if (error(); as message) {
+      <p class="status-message error-message" role="alert">{{ message }}</p>
+    } @else {
+      <div class="stock-table-frame" [class.is-loading]="loading()">
+        @if (tab() === 'levels') {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Item</th><th>Warehouse</th><th class="num">Actual qty</th><th class="num">Reserved</th>
+                <th class="num">Projected</th><th class="num">Valuation rate</th><th class="num">Stock value</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (level of levels(); track level.name) {
+                <tr>
+                  <td class="cell-strong card-title" data-label="Item">{{ level.item_code }}</td>
+                  <td data-label="Warehouse">{{ level.warehouse }}</td>
+                  <td class="num" [class.negative]="(level.actual_qty ?? 0) < 0" data-label="Actual qty">{{ level.actual_qty | qty }} {{ level.stock_uom }}</td>
+                  <td class="num" data-label="Reserved">{{ level.reserved_qty | qty }}</td>
+                  <td class="num" data-label="Projected">{{ level.projected_qty | qty }}</td>
+                  <td class="num" data-label="Valuation rate">{{ level.valuation_rate | money }}</td>
+                  <td class="num" data-label="Stock value">{{ level.stock_value | money }}</td>
+                </tr>
+              } @empty {
+                <tr class="empty-row"><td colspan="7" class="empty-state">{{ loading() ? 'Loading…' : 'No stock found.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        } @else if (tab() === 'movements') {
+          <table class="data-table">
+            <thead>
+              <tr><th>Item</th><th>Date</th><th>Warehouse</th><th class="num">Qty change</th><th class="num">Qty after</th><th>Voucher</th></tr>
+            </thead>
+            <tbody>
+              @for (movement of movements(); track movement.name) {
+                <tr>
+                  <td class="cell-strong card-title" data-label="Item">{{ movement.item_code }}</td>
+                  <td class="card-status" data-label="Date">{{ movement.posting_date | appDate }}</td>
+                  <td data-label="Warehouse">{{ movement.warehouse }}</td>
+                  <td class="num" [class.negative]="(movement.actual_qty ?? 0) < 0" data-label="Qty change">{{ (movement.actual_qty ?? 0) > 0 ? '+' : '' }}{{ movement.actual_qty | qty }}</td>
+                  <td class="num" data-label="Qty after">{{ movement.qty_after_transaction | qty }}</td>
+                  <td data-label="Voucher">
+                    @if (['Sales Invoice', 'Sales Order', 'Quotation'].includes(movement.voucher_type ?? '')) {
+                      <a [routerLink]="['/sales', movement.voucher_type, movement.voucher_no]">{{ movement.voucher_type }} · {{ movement.voucher_no }}</a>
+                    } @else {
+                      {{ movement.voucher_type }} · {{ movement.voucher_no }}
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr class="empty-row"><td colspan="6" class="empty-state">{{ loading() ? 'Loading…' : 'No stock movements found.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr><th>Entry</th><th>Date</th><th>Type</th><th>From</th><th>To</th><th class="num">Value</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr>
+            </thead>
+            <tbody>
+              @for (entry of entries(); track entry.name) {
+                <tr>
+                  <td class="cell-strong card-title" data-label="Entry">{{ entry.name }}</td>
+                  <td data-label="Date">{{ entry.posting_date | appDate }}</td>
+                  <td data-label="Type">{{ entry.stock_entry_type }}</td>
+                  <td data-label="From">{{ entry.from_warehouse || '—' }}</td>
+                  <td data-label="To">{{ entry.to_warehouse || '—' }}</td>
+                  <td class="num" data-label="Value">{{ (entry.total_outgoing_value || entry.total_incoming_value || 0) | money }}</td>
+                  <td class="card-status" data-label="Status">
+                    <span class="status" [class.draft-status]="entry.docstatus === 0" [class.disabled-status]="entry.docstatus === 2">{{ entryStatus(entry) }}</span>
+                  </td>
+                  <td class="card-actions">
+                    @if (entry.docstatus === 0) {
+                      <button class="row-action" type="button" [disabled]="busyEntry() === entry.name" (click)="submitEntry(entry)">Submit</button>
+                      <button class="row-action danger-text" type="button" [disabled]="busyEntry() === entry.name" (click)="deleteEntry(entry)">Delete</button>
+                    } @else if (entry.docstatus === 1) {
+                      <button class="row-action danger-text" type="button" [disabled]="busyEntry() === entry.name" (click)="cancelEntry(entry)">Cancel</button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr class="empty-row"><td colspan="8" class="empty-state">{{ loading() ? 'Loading…' : 'No stock entries yet.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        }
+        <app-pager [page]="page()" [pageSize]="pageSize" [total]="total()" [busy]="loading()" (pageChange)="goToPage($event)" />
+      </div>
+    }
+  </section>
+
+  @if (dialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <section class="stock-dialog" role="dialog" aria-modal="true" aria-labelledby="stock-dialog-title" (click)="$event.stopPropagation()">
+        <header class="dialog-heading">
+          <div>
+            <span class="dialog-kicker">{{ entryPurpose() || 'Stock entry' }}</span>
+            <h2 id="stock-dialog-title">New stock entry</h2>
+          </div>
+          <button class="dialog-close" type="button" [disabled]="saving()" (click)="closeDialog()" aria-label="Close">×</button>
+        </header>
+        <form [formGroup]="entryForm" (ngSubmit)="saveEntry()">
+          <div class="dialog-content">
+            <div class="dialog-fields">
+              <label><span class="label-line">Entry type <b class="req" aria-hidden="true">*</b></span>
+                <select formControlName="stock_entry_type" (change)="chooseEntryType($any($event.target).value)">
+                  <option value="" disabled>Select type</option>
+                  @for (entryType of stockEntryTypes(); track entryType.name) { <option [value]="entryType.name">{{ entryType.name }}</option> }
+                </select>
+              </label>
+              <label><span class="label-line">Company <b class="req" aria-hidden="true">*</b></span>
+                <select formControlName="company">
+                  <option value="" disabled>Select company</option>
+                  @for (company of companies(); track company.name) { <option [value]="company.name">{{ company.name }}</option> }
+                </select>
+              </label>
+              <label><span class="label-line">Posting date <b class="req" aria-hidden="true">*</b></span><input type="date" formControlName="posting_date" /></label>
+              @if (needsFromWarehouse()) {
+                <label><span class="label-line">From warehouse <b class="req" aria-hidden="true">*</b></span>
+                  <select formControlName="from_warehouse">
+                    <option value="">Select warehouse</option>
+                    @for (warehouse of warehouses(); track warehouse) { <option [value]="warehouse">{{ warehouse }}</option> }
+                  </select>
+                </label>
+              }
+              @if (needsToWarehouse()) {
+                <label><span class="label-line">To warehouse <b class="req" aria-hidden="true">*</b></span>
+                  <select formControlName="to_warehouse">
+                    <option value="">Select warehouse</option>
+                    @for (warehouse of warehouses(); track warehouse) { <option [value]="warehouse">{{ warehouse }}</option> }
+                  </select>
+                </label>
+              }
+            </div>
+
+            <div class="entry-rows">
+              <div class="entry-rows-heading">
+                <h3>Items</h3>
+                <button class="secondary-button" type="button" (click)="addItemRow()">+ Add row</button>
+              </div>
+              @for (row of entryItems.controls; track $index; let i = $index) {
+                <div class="entry-row" [formGroup]="row">
+                  <label class="field-wide">Item
+                    <app-link-input doctype="Item" formControlName="item_code" placeholder="Search stock items…" [filters]="{ is_stock_item: 1, disabled: 0 }" (selected)="chooseItem(i, $event)" />
+                    @if (row.controls.item_name.value) { <small class="item-hint">{{ row.controls.item_name.value }}</small> }
+                  </label>
+                  <label>Quantity<input type="number" min="0" step="any" inputmode="decimal" formControlName="qty" /></label>
+                  <label>UOM<input formControlName="uom" placeholder="Stock UOM" /></label>
+                  <button class="secondary-button" type="button" [disabled]="entryItems.length <= 1" (click)="removeItemRow(i)" [attr.aria-label]="'Remove row ' + (i + 1)">Remove</button>
+                </div>
+              }
+            </div>
+
+            @if (formError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+          </div>
+          <footer class="dialog-actions">
+            <button class="secondary-button" type="button" [disabled]="saving()" (click)="closeDialog()">Cancel</button>
+            <button class="primary-button" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save draft' }}</button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  }
+</div>
